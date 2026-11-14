@@ -14,32 +14,62 @@ cd backend && ../.venv/bin/uvicorn main:app --reload --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:3000, pick an astronaut, then click **Talk to Blue** (bottom-right).
-Override the API URL with `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`).
+Open http://localhost:3000 and sign in. The frontend proxies `/api/*` to the backend
+(`BLUE_API_URL`, default `http://localhost:8000`, see `frontend/.env.example`), so the
+session cookie stays first-party.
+
+## Accounts & privacy
+
+| Username | Password (demo) | Role | Sees |
+| --- | --- | --- | --- |
+| `vance` | `blue-vance-2035` | Commander | own data, BLUE, own reports |
+| `chen` | `blue-chen-2035` | Flight Engineer | own data, BLUE, own reports |
+| `lin` | `blue-lin-2035` | Mission Specialist | own data, BLUE, own reports |
+| `surgeon` | `blue-surgeon-2035` | Flight surgeon | all crew — physical & cabin data only |
+
+These passwords are public — change them before showing the app outside the team:
+`.venv/bin/python scripts/manage_users.py set-password vance` (or `init` to reset all).
+Set `NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS=1` to list the demo accounts on the login screen.
+
+What is enforced on the server (`backend/core/auth.py`, `backend/main.py`):
+
+* every route except `/api/health` and `/api/auth/login` needs a session; sessions are random
+  tokens in an httpOnly, SameSite=Lax cookie (8 h; set `BLUE_COOKIE_SECURE=1` behind HTTPS);
+* passwords are PBKDF2-SHA256 hashed; 5 failed logins lock the username for 5 minutes;
+* astronauts get 403 on anyone else's data; the flight surgeon gets a redacted profile with no
+  mental-health reports, no mental highlights and no voice/behaviour metrics, and cannot use BLUE;
+* API responses are `Cache-Control: no-store`; POSTs from unknown origins are rejected.
+
+Sessions live in memory: restarting the backend signs everyone out.
 
 ## Demo flow (3 min)
 
-1. Selector → **Eng. Marcus Chen** (hypoglycemic trend) or **Spec. Maya Lin** (high evening cortisol).
-2. Toggle **Physical Panel / Mental Panel** — the body model & telemetry emphasis change.
-3. **Talk to Blue** → BLUE opens with the astronaut's context, asks 4–5 follow-ups (`DEEP_SUPPORT`)
-   or 2 for Cmdr. Vance (`BRIEF_CHECKIN`, escalates if fatigue/anxiety/sleep issues are mentioned).
-4. **End Session & Generate Earth Report** → the report appears at the top of the right column
-   (`QUEUED_FOR_EARTH`) → **Simulate Earth Psychologist Reply** fills the "What to Do" directive.
+1. Sign in as `surgeon` → crew overview (physical only) → open **Spec. Maya Lin**; note the
+   mental reports are replaced by mission events. Log out.
+2. Sign in as `lin` → the dashboard shows only key readings. Click **Blood oxygen** → the
+   7-day chart shows the day-148 dip to 88.5 % with a numbered event marker; try *Whole mission*.
+3. Toggle **Physical / Mental Panel**; click body markers for details and "View chart".
+4. **Talk to Blue** → BLUE opens with the episode context and asks 3–5 follow-ups
+   (`DEEP_SUPPORT`); `vance` gets a 2-question `BRIEF_CHECKIN`.
+5. **End Session & Generate Earth Report** → new headline at the top of the reports list →
+   open it or **Simulate Earth Psychologist Reply** for the "What to do" directive.
 
 Generated reports live in memory only: restart the backend to reset the demo.
 
 ## Data
 
-`backend/data/astronauts.json` is the committed seed, produced by:
+Source: `data/source/astra_donnees_simulees.csv` (ASTRA simulated telemetry, 4 crew, mission
+days 120–150, 15-minute cadence). Crew C1–C3 become Vance, Chen and Lin; C4 is not used.
 
 ```bash
-.venv/bin/python scripts/build_mock_data.py          # regenerate
+.venv/bin/python scripts/expand_dataset.py           # -> data/source/astra_donnees_etendues.csv (days 1–150)
+.venv/bin/python scripts/build_mock_data.py          # -> backend/data/astronauts.json + telemetry/*.json
 .venv/bin/python scripts/build_mock_data.py --check  # validate against schemas.py
 ```
 
-Hybrid ETL: if PhysioNet `mimic-iv-demo` is downloaded into `data/raw/mimic-iv-demo/`
-(git-ignored), real HR/glucose variability is used as texture; otherwise a seeded synthetic texture.
-Canonical anchor values from AGENTS.md are always preserved exactly.
+Everything shown in the app (current values, statuses, highlights, events, seeded reports, history)
+is derived from the CSV by these scripts. Metric labels, units and alert bands live in
+`backend/core/metrics.py`; they are demo alert bands, not clinical reference ranges.
 
 ## Tests & checks
 
@@ -52,7 +82,9 @@ cd frontend && npm run typecheck && npm run build
 
 | Area | Status |
 | --- | --- |
-| Crew selector, 3-column dashboard, Physical/Mental switcher | Done |
+| Login, sessions, astronaut / flight-surgeon access rules | Done |
+| Dashboard with primary info only; per-metric detail pages (26 metrics, 4 ranges, events) | Done |
+| ASTRA CSV expanded to the whole mission; data-driven profiles and events | Done |
 | SVG body model (brain / heart / lungs / metabolic) with callouts | Done |
 | BLUE conversation (`BRIEF_CHECKIN` / `DEEP_SUPPORT`), Earth report, Earth reply | Done — deterministic scripted engine |
 | LLM-backed BLUE | Not yet — `core/psychologist.py` is ready to be the timeout fallback |

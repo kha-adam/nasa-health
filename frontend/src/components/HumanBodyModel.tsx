@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Brain, HeartPulse, Wind, Zap } from "lucide-react";
+import Link from "next/link";
+import { Brain, ChevronRight, HeartPulse, Wind, Zap } from "lucide-react";
 import type { AstronautProfile, BodyHighlight, BodyZone, StatusTag } from "@/types/blue";
-import { STATUS_STYLES } from "@/lib/vitals";
-import type { PanelMode } from "./TopNavBar";
+import { STATUS_STYLES, metricHref, type PanelMode } from "@/lib/metrics";
 import StatusBadge from "./StatusBadge";
 
 interface Props {
   profile: AstronautProfile;
   panel: PanelMode;
+  asSurgeon: boolean;
 }
+
+const RANK: Record<StatusTag, number> = { NOMINAL: 0, ADVISORY: 1, URGENT: 2 };
 
 const VIEW_H = 440;
 
@@ -54,10 +57,14 @@ const ORGAN_PATHS: Record<BodyZone, string[]> = {
   ],
 };
 
-export default function HumanBodyModel({ profile, panel }: Props) {
+export default function HumanBodyModel({ profile, panel, asSurgeon }: Props) {
   const [selected, setSelected] = useState<BodyZone | null>(null);
   const highlights = profile.body_highlights[panel];
-  const byZone = new Map<BodyZone, BodyHighlight>(highlights.map((h) => [h.zone, h]));
+  // Several findings can share a zone: keep them all, most severe first.
+  const grouped = new Map<BodyZone, BodyHighlight[]>();
+  for (const h of highlights) grouped.set(h.zone, [...(grouped.get(h.zone) ?? []), h]);
+  for (const list of grouped.values()) list.sort((a, b) => RANK[b.severity] - RANK[a.severity]);
+  const byZone = new Map<BodyZone, BodyHighlight>([...grouped].map(([z, list]) => [z, list[0]]));
   const activeZones = (Object.keys(ZONES) as BodyZone[]).filter(
     (z) => ZONES[z].panels.includes(panel) || byZone.has(z),
   );
@@ -70,7 +77,7 @@ export default function HumanBodyModel({ profile, panel }: Props) {
         <div>
           <h2 className="text-sm font-semibold text-ink">Body Systems Model</h2>
           <p className="text-[11px] text-ink-soft">
-            {panel === "physical" ? "Cardiovascular, respiratory & metabolic focus" : "Neuro-stress & psychophysiological focus"}
+            {panel === "physical" ? "Heart, lungs & metabolism" : "Stress & recovery"}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -175,40 +182,59 @@ export default function HumanBodyModel({ profile, panel }: Props) {
           })}
         </svg>
 
-        {/* Layer 4: callout cards */}
+        {/* Layer 4: callout cards — alerts always, nominal zones only when selected */}
         {activeZones.map((zone) => {
           const meta = ZONES[zone];
-          const h = byZone.get(zone);
+          const list = grouped.get(zone) ?? [];
+          const h = list[0];
           const Icon = meta.icon;
           const isSelected = selected === zone;
-          if (!h && !isSelected) return null;
+          const alert = h && h.severity !== "NOMINAL";
+          if (!alert && !isSelected) return null;
           return (
-            <button
+            <div
               key={zone}
-              onClick={() => setSelected(isSelected ? null : zone)}
               className={`absolute w-[38%] max-w-[230px] rounded-xl border bg-white/95 p-2.5 text-left shadow-card backdrop-blur transition ${
-                isSelected ? "border-sky ring-2 ring-tint-strong" : "border-line hover:border-tint-strong"
+                isSelected ? "z-10 border-sky ring-2 ring-tint-strong" : "border-line hover:border-tint-strong"
               }`}
               style={{ top: `${CALLOUT_TOP[zone]}%`, [meta.side]: 0 }}
             >
-              <div className="flex flex-wrap items-center justify-between gap-1">
-                <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky">
-                  <Icon className="h-3 w-3" /> {meta.label}
-                </span>
-                {h && <StatusBadge status={h.severity} />}
-              </div>
-              <p className="mt-1 text-xs font-semibold leading-tight text-ink">{h?.label ?? "Within nominal range"}</p>
-              {(isSelected || !h || h.severity !== "NOMINAL") && (
-                <p className="mt-0.5 text-[11px] leading-snug text-ink-soft">
-                  {h?.detail ?? "No anomalies detected for this system today."}
+              <button className="block w-full text-left" onClick={() => setSelected(isSelected ? null : zone)}>
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                  <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky">
+                    <Icon className="h-3 w-3" /> {meta.label}
+                  </span>
+                  {h && <StatusBadge status={h.severity} />}
+                </div>
+                <p className="mt-1 text-xs font-semibold leading-tight text-ink">
+                  {h?.label ?? "Within normal range"}
+                  {!isSelected && list.length > 1 && <span className="font-normal text-ink-soft"> +{list.length - 1}</span>}
                 </p>
+              </button>
+              {isSelected && (
+                <div className="mt-1 space-y-1.5">
+                  {(list.length ? list : [null]).map((item, i) => (
+                    <div key={i} className="text-[11px] leading-snug text-ink-soft">
+                      {i > 0 && item && <p className="font-semibold text-ink">{item.label}</p>}
+                      <p>{item?.detail ?? "No anomalies detected for this system."}</p>
+                      {item?.metric && (
+                        <Link
+                          href={metricHref(item.metric, profile.id, asSurgeon)}
+                          className="mt-0.5 inline-flex items-center gap-0.5 font-semibold text-sky hover:text-sky-hover"
+                        >
+                          View chart <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
 
-      <p className="mt-1 text-center text-[10px] text-ink-soft">Click a marker or organ for details</p>
+      <p className="mt-1 text-center text-[10px] text-ink-soft">Tap a marker for details</p>
     </section>
   );
 }

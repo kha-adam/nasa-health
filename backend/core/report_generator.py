@@ -8,13 +8,7 @@ from __future__ import annotations
 
 import uuid
 
-from core.psychologist import (
-    MAX_CORTISOL,
-    MAX_HEART_RATE,
-    MIN_BLOOD_SUGAR,
-    detect_themes,
-    user_text,
-)
+from core.psychologist import detect_themes, user_text
 from schemas import AstronautProfile, ChatMessage, MentalHealthReport, SessionMode
 
 THEME_SENTENCES = {
@@ -42,19 +36,18 @@ HEADLINE_PRIORITY = ["isolation", "sleep", "nutrition", "physical", "anxiety", "
 BASE_HEADLINES: dict[tuple[str, SessionMode], str] = {
     ("astro-vance", "BRIEF_CHECKIN"): "Routine Check-In: Stable Energy & Crew Morale",
     ("astro-vance", "DEEP_SUPPORT"): "Commander Check-In: Emerging Strain Despite Nominal Vitals",
-    ("astro-chen", "DEEP_SUPPORT"): "Post-EVA Metabolic Strain",
-    ("astro-lin", "DEEP_SUPPORT"): "Priority: Isolation Fatigue & Elevated Evening Cortisol",
+    ("astro-chen", "DEEP_SUPPORT"): "Sleep & Stress Recovery Check",
+    ("astro-lin", "DEEP_SUPPORT"): "Priority: Follow-Up After Exercise Dizziness Episode",
 }
 
 EARTH_DIRECTIVES: dict[str, str] = {
     "astro-vance": "No intervention required. Maintain current sleep schedule and weekly crew debriefs; next routine "
     "BLUE check-in in 3 days.",
-    "astro-chen": "Mandatory 30 g fast-acting carbohydrate now and a full meal within 1 hour; enforce pre-EVA "
-    "nutrition checkpoints and a 20-minute post-shift decompression. Re-check glucose in 2 hours and follow up with "
-    "BLUE tomorrow.",
-    "astro-lin": "Schedule two shared crew meals per day and a private family call within 48 hours; dim cabin "
-    "lighting and stop screen work 60 minutes before sleep. Flight psychologist live session booked for the next "
-    "high-bandwidth comm window.",
+    "astro-chen": "Keep the earlier warm-light evening schedule, stop troubleshooting work after 20:00 and protect "
+    "an 8-hour sleep window. Follow up with BLUE in 3 days.",
+    "astro-lin": "Light exercise only, supervised by the crew medical officer, until the flight surgeon has reviewed "
+    "the episode data. A live session with the flight psychologist is booked for the next high-bandwidth comm "
+    "window to talk through the worry about it happening again.",
 }
 THEME_DIRECTIVES = {
     "sleep": "Add a 20-minute wind-down protocol (guided breathing) before the sleep period.",
@@ -92,41 +85,30 @@ def _headline(profile: AstronautProfile, mode: SessionMode, themes: list[str]) -
 
 
 def _biometric_correlation(profile: AstronautProfile, themes: list[str]) -> str:
-    v = profile.current_vitals
-    hist = profile.vitals_history
-    parts: list[str] = []
-
-    if v.blood_sugar_mg_dl < MIN_BLOOD_SUGAR:
-        if hist:
-            parts.append(
-                f"Blood glucose fell from {hist[0].blood_sugar_mg_dl:g} to {v.blood_sugar_mg_dl:g} mg/dL "
-                f"({hist[0].time}–{hist[-1].time})"
-            )
-        else:
-            parts.append(f"Blood glucose low at {v.blood_sugar_mg_dl:g} mg/dL")
-    if v.heart_rate_bpm > MAX_HEART_RATE or (v.blood_sugar_mg_dl < MIN_BLOOD_SUGAR and v.heart_rate_bpm > 90):
-        parts.append(f"compensatory HR rise to {v.heart_rate_bpm:g} BPM")
-    if v.cortisol_ug_dl > MAX_CORTISOL:
-        trend = ""
-        if hist and hist[-1].cortisol_ug_dl > hist[0].cortisol_ug_dl:
-            trend = f", rising since {hist[0].time}"
-        parts.append(f"cortisol {v.cortisol_ug_dl:g} ug/dL above the {MAX_CORTISOL:.1f} threshold{trend}")
-
-    if not parts:
+    """Tie the conversation to what the sensors show, using the profile's alerts."""
+    alerts = [
+        h
+        for h in profile.body_highlights.physical + profile.body_highlights.mental
+        if h.severity != "NOMINAL"
+    ]
+    if not alerts:
+        v = profile.current_vitals
+        g = lambda x: "n/a" if x is None else f"{x:g}"  # noqa: E731
         text = (
-            f"All vitals within nominal range (HR {v.heart_rate_bpm:g} BPM, glucose {v.blood_sugar_mg_dl:g} mg/dL, "
-            f"BP {v.systolic_bp:g}/{v.diastolic_bp:g} mmHg, SpO2 {v.spo2_percent:g}%, cortisol {v.cortisol_ug_dl:g} ug/dL)."
+            f"All readings within normal range (BP {g(v.systolic_bp)}/{g(v.diastolic_bp)} mmHg, "
+            f"SpO2 {g(v.spo2_percent)}%, glucose {g(v.blood_sugar_mg_dl)} mg/dL, morning cortisol "
+            f"{g(v.cortisol_nmol_l)} nmol/L, sleep {g(v.sleep_hours)} h)."
         )
         if distress := set(themes) & {"sleep", "fatigue", "anxiety", "isolation"}:
             text += f" Self-reported {', '.join(sorted(distress))} not yet reflected in biomarkers — monitor."
         return text
 
-    text = "; ".join(parts)
-    text = text[0].upper() + text[1:] + "."
-    if v.cortisol_ug_dl > MAX_CORTISOL and ({"sleep", "isolation", "anxiety"} & set(themes)):
-        text += " Self-reported psychological strain is consistent with the elevated cortisol curve."
-    elif v.blood_sugar_mg_dl < MIN_BLOOD_SUGAR and ({"physical", "nutrition"} & set(themes)):
-        text += " Reported symptoms align with the hypoglycemic trend."
+    text = " ".join(f"{h.label}: {h.detail[0].lower()}{h.detail[1:].rstrip('.')}." for h in alerts[:3])
+    zones = {h.zone for h in alerts}
+    if "brain" in zones and {"sleep", "anxiety", "isolation", "fatigue"} & set(themes):
+        text += " Self-reported strain is consistent with the stress markers."
+    elif zones & {"lungs", "heart"} and {"physical", "anxiety"} & set(themes):
+        text += " Reported symptoms and worry line up with the recent physical episode."
     return text
 
 
