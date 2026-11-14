@@ -1,0 +1,30 @@
+[
+  {
+    "username": "vance",
+    "display_name": "Cmdr. Elena Vance",
+    "role": "astronaut",
+    "astronaut_id": "astro-vance",
+    "password_hash": "pbkdf2_sha256$200000$sNkv7neX1ki6zfwRdlVcYA==$Xl7JnBSLajsVC2/gCZqM+ag9LJPGwJp8dcqhUH5VfK0="
+  },
+  {
+    "username": "chen",
+    "display_name": "Eng. Marcus Chen",
+    "role": "astronaut",
+    "astronaut_id": "astro-chen",
+    "password_hash": "pbkdf2_sha256$200000$Wgrj7PaJ/4UuD6yqwXiM7A==$zsz0iZbmojJmpCKPmCFd4qguBBWHmD44FBkSMlJyrmY="
+  },
+  {
+    "username": "lin",
+    "display_name": "Spec. Maya Lin",
+    "role": "astronaut",
+    "astronaut_id": "astro-lin",
+    "password_hash": "pbkdf2_sha256$200000$nUiAeIInRqr38ciHV49rTQ==$jXl2bfV2zQlgbYAul9iZuMo9Yfg+FEHFQNeoDyBKzL0="
+  },
+  {
+    "username": "surgeon",
+    "display_name": "Flight Surgeon · Mission Control",
+    "role": "flight_surgeon",
+    "astronaut_id": null,
+    "password_hash": "pbkdf2_sha256$200000$QVhLKLVkw0/xaEb3k9BK1A==$NSykHXqHWhg7xd7Uv25naaowMOBAnASjOASZCmdpfNI="
+  }
+]

@@ -1,20 +1,23 @@
 "use client";
 
-import { ArrowLeftRight, Brain, HeartPulse, Radio } from "lucide-react";
-import type { AstronautProfile } from "@/types/blue";
-import { EARTH_DELAY } from "@/lib/vitals";
+import Link from "next/link";
+import { Brain, HeartPulse, LogOut, Radio, Users } from "lucide-react";
+import type { AstronautProfile, SessionUser } from "@/types/blue";
+import { formatDelay, type PanelMode } from "@/lib/metrics";
 import StatusBadge from "./StatusBadge";
 
-export type PanelMode = "physical" | "mental";
+export type { PanelMode };
 
 interface Props {
   profile: AstronautProfile;
+  user: SessionUser;
   panel: PanelMode;
   onPanelChange: (mode: PanelMode) => void;
-  onSwitchAstronaut: () => void;
+  onLogout: () => void;
 }
 
-export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstronaut }: Props) {
+export default function TopNavBar({ profile, user, panel, onPanelChange, onLogout }: Props) {
+  const surgeon = user.role === "flight_surgeon";
   return (
     <header className="card grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-3">
       {/* Left: astronaut identity */}
@@ -27,16 +30,18 @@ export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstro
             <h1 className="truncate text-sm font-semibold text-ink">{profile.name}</h1>
             <StatusBadge status={profile.status_tag} />
           </div>
-          <p className="text-xs text-ink-soft">
+          <p className="truncate text-xs text-ink-soft">
             {profile.role} · Mission Day {profile.mission_day}
           </p>
         </div>
-        <button
-          onClick={onSwitchAstronaut}
-          className="ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-tint-strong hover:bg-tint hover:text-sky"
-        >
-          <ArrowLeftRight className="h-3.5 w-3.5" /> Switch Astronaut
-        </button>
+        {surgeon && (
+          <Link
+            href="/crew"
+            className="ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-tint-strong hover:bg-tint hover:text-sky"
+          >
+            <Users className="h-3.5 w-3.5" /> Switch Astronaut
+          </Link>
+        )}
       </div>
 
       {/* Center: Physical | Mental segmented switcher */}
@@ -64,18 +69,21 @@ export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstro
         })}
       </div>
 
-      {/* Right: Earth comms latency */}
-      <div className="flex justify-start xl:justify-end">
+      {/* Right: Earth comms latency + account */}
+      <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
         <div className="inline-flex items-center gap-2 rounded-full border border-line bg-canvas px-3 py-1.5 text-xs text-ink-soft">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-light opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky" />
-          </span>
           <Radio className="h-3.5 w-3.5 text-sky" />
           <span>
-            Earth Link: <strong className="font-semibold text-ink">{EARTH_DELAY} Delay</strong>
+            Earth Link: <strong className="font-semibold text-ink">{formatDelay(profile.current_vitals.earth_delay_min)} Delay</strong>
           </span>
         </div>
+        <button
+          onClick={onLogout}
+          title={`Signed in as ${user.display_name}`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-tint-strong hover:bg-tint hover:text-sky"
+        >
+          <LogOut className="h-3.5 w-3.5" /> Log out
+        </button>
       </div>
     </header>
   );
