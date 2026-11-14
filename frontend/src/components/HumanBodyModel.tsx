@@ -73,22 +73,7 @@ export default function HumanBodyModel({ profile, panel, asSurgeon }: Props) {
 
   return (
     <section className="card relative flex min-h-0 flex-col overflow-hidden p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-ink">Body Systems Model</h2>
-          <p className="text-[11px] text-ink-soft">
-            {panel === "physical" ? "Heart, lungs & metabolism" : "Stress & recovery"}
-          </p>
-        </div>
-        <div className="flex gap-1.5">
-          {(["NOMINAL", "ADVISORY", "URGENT"] as StatusTag[]).map((s) => (
-            <span key={s} className="flex items-center gap-1 text-[10px] text-ink-soft">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: STATUS_STYLES[s].hex }} />
-              {s.toLowerCase()}
-            </span>
-          ))}
-        </div>
-      </div>
+      <h2 className="text-sm font-semibold text-ink">Body Systems Model</h2>
 
       <div className="relative mt-2 min-h-0 flex-1">
         {/* soft radial backdrop */}
@@ -234,7 +219,6 @@ export default function HumanBodyModel({ profile, panel, asSurgeon }: Props) {
         })}
       </div>
 
-      <p className="mt-1 text-center text-[10px] text-ink-soft">Tap a marker for details</p>
     </section>
   );
 }

@@ -12,7 +12,7 @@ interface Props {
 }
 
 /** Mission events (episodes, drifts, habitat changes), newest first. */
-export default function EventsPanel({ profile, asSurgeon, limit = 6 }: Props) {
+export default function EventsPanel({ profile, asSurgeon, limit = 4 }: Props) {
   const events = profile.events.slice(0, limit);
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">

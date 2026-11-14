@@ -11,10 +11,14 @@ interface Props {
   freshReportId?: string | null;
 }
 
+const RECENT = 3;
+
 /** Right column: one line per report; the full report opens on its own page. */
 export default function MentalReportsPanel({ reports, onSimulateEarthReply, freshReportId }: Props) {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? reports : reports.slice(0, RECENT);
 
   const simulate = async (id: string) => {
     setPending(id);
@@ -45,7 +49,7 @@ export default function MentalReportsPanel({ reports, onSimulateEarthReply, fres
           </div>
         )}
 
-        {reports.map((r) => {
+        {visible.map((r) => {
           const reviewed = r.earth_status === "REVIEWED_BY_EARTH";
           const fresh = r.id === freshReportId;
           return (
@@ -97,6 +101,14 @@ export default function MentalReportsPanel({ reports, onSimulateEarthReply, fres
             </article>
           );
         })}
+        {reports.length > RECENT && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="shrink-0 px-4 py-2.5 text-xs font-semibold text-sky transition hover:bg-canvas hover:text-sky-hover"
+          >
+            {showAll ? "Show fewer" : `Show ${reports.length - RECENT} older`}
+          </button>
+        )}
       </div>
     </section>
   );
