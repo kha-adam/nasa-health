@@ -16,9 +16,9 @@ interface Props {
 
 export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstronaut }: Props) {
   return (
-    <header className="card grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-3">
+    <header className="card grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-3">
       {/* Left: astronaut identity */}
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-tint font-bold text-sky">
           {profile.avatar_initials}
         </div>
@@ -40,7 +40,7 @@ export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstro
       </div>
 
       {/* Center: Physical | Mental segmented switcher */}
-      <div role="tablist" aria-label="Dashboard panel" className="flex rounded-full bg-tint p-1">
+      <div role="tablist" aria-label="Dashboard panel" className="flex w-fit max-w-full rounded-full bg-tint p-1">
         {(
           [
             { key: "physical", label: "Physical Panel", icon: HeartPulse },
@@ -54,7 +54,7 @@ export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstro
               role="tab"
               aria-selected={active}
               onClick={() => onPanelChange(key)}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition ${
+              className={`inline-flex items-center gap-2 rounded-full px-3 sm:px-5 py-2 text-sm font-semibold transition ${
                 active ? "bg-sky text-white shadow" : "text-sky hover:bg-tint-strong/60"
               }`}
             >
@@ -65,7 +65,7 @@ export default function TopNavBar({ profile, panel, onPanelChange, onSwitchAstro
       </div>
 
       {/* Right: Earth comms latency */}
-      <div className="flex justify-end">
+      <div className="flex justify-start xl:justify-end">
         <div className="inline-flex items-center gap-2 rounded-full border border-line bg-canvas px-3 py-1.5 text-xs text-ink-soft">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-light opacity-60" />

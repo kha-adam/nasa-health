@@ -7,7 +7,7 @@ Astronaut physical & psychological health dashboard with **BLUE**, an adaptive A
 
 ```bash
 # 1. Backend (FastAPI, port 8000)
-python3 -m venv .venv && .venv/bin/pip install -r backend/requirements.txt
+python3.12 -m venv .venv && .venv/bin/pip install -r backend/requirements.txt
 cd backend && ../.venv/bin/uvicorn main:app --reload --port 8000
 
 # 2. Frontend (Next.js, port 3000) — in another terminal
@@ -55,5 +55,29 @@ cd frontend && npm run typecheck && npm run build
 | Crew selector, 3-column dashboard, Physical/Mental switcher | Done |
 | SVG body model (brain / heart / lungs / metabolic) with callouts | Done |
 | BLUE conversation (`BRIEF_CHECKIN` / `DEEP_SUPPORT`), Earth report, Earth reply | Done — deterministic scripted engine |
-| LLM-backed BLUE | Not yet — `core/psychologist.py` is ready to be the timeout fallback |
-| Voice (STT/TTS) | Deferred — text input in the BLUE drawer; `core/speech.py` is a stub |
+| LLM-backed BLUE | Live Fish Audio conversation, with crew context and an offline check-in fallback |
+| Voice & animated character | Animated blue octopus, continuous live microphone, separate microphone/speaker mute, text and backup voice input |
+
+## BLUE voice companion
+
+Click the bottom-right blue dot to open BLUE and allow microphone access. The animated octopus listens and talks using the
+Fish Audio live agent. The microphone stays connected throughout the conversation; replies do not require another click.
+**Mute microphone** controls your input, while the speaker button controls BLUE’s output independently.
+Closing the drawer releases the microphone. Hidden tabs suspend the session; returning resumes with the conversation history.
+
+Spoken and typed messages use the same live agent, with the selected astronaut’s vitals and recent check-in history.
+The agent answers direct questions before continuing the voluntary survey. **End Session & Generate Earth Report** still files
+the conversation through the existing backend. If live voice is unavailable, the text check-in and backup speech input remain available.
+
+Wake recognition uses the browser when available, with backup transcription if its speech service fails.
+Say “Hey Bleu” or “Hey Blue”, or use the dot by mouse/keyboard. The activation phrase is discarded.
+
+The backend reads `FISH_API_KEY`, `FISH_AGENT_ID`, and `FISH_VOICE_ID` from environment variables or `fish-blue/.env`.
+The current voice is `933563129e564b19a115bedd57b7406a`. API keys stay server-side; browsers receive temporary session tokens.
+Use Python 3.11+ and Node 22.18+ for local development and tests.
+
+```bash
+node --test frontend/tests/browserSpeech.test.mjs
+# With frontend :3000 and backend :8000 running; uses a disposable desktop Chrome profile and a test microphone.
+node frontend/tests/voiceCharacter.chrome.mjs
+```
