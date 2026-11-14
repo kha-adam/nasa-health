@@ -111,6 +111,37 @@ export function normalRange(t: Thresholds | null): string | null {
   return null;
 }
 
+export interface OutOfRange {
+  direction: "high" | "low";
+  /** Normal range of the series that is out of band, e.g. "≤ 19". */
+  normal: string | null;
+}
+
+/** Whether the current value of a metric sits above or below its normal band (first offending series). */
+export function outOfRange(metric: MetricDefinition, vitals: CurrentVitals): OutOfRange | null {
+  const v = vitals as unknown as Record<string, number | null>;
+  for (const s of metric.series) {
+    const t = s.thresholds;
+    const value = v[s.field];
+    if (!t || value == null) continue;
+    if (t.advisory_low != null && value < t.advisory_low) return { direction: "low", normal: normalRange(t) };
+    if (t.advisory_high != null && value > t.advisory_high) return { direction: "high", normal: normalRange(t) };
+  }
+  return null;
+}
+
+const STATUS_RANK: Record<StatusTag, number> = { NOMINAL: 0, ADVISORY: 1, URGENT: 2 };
+
+/** Personal (non-cabin) metrics currently outside their normal band, most severe first. */
+export function alertMetrics(
+  catalog: MetricDefinition[],
+  status: Record<string, StatusTag>,
+): MetricDefinition[] {
+  return catalog
+    .filter((m) => m.category !== "environment" && (status[m.key] ?? "NOMINAL") !== "NOMINAL")
+    .sort((a, b) => STATUS_RANK[status[b.key]] - STATUS_RANK[status[a.key]]);
+}
+
 export function dashboardHref(astronautId: string, asSurgeon: boolean): string {
   return asSurgeon ? `/dashboard?id=${astronautId}` : "/dashboard";
 }
