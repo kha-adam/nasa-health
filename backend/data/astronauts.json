@@ -1,0 +1,254 @@
+[
+  {
+    "id": "astro-vance",
+    "name": "Cmdr. Elena Vance",
+    "role": "Commander",
+    "mission_day": 118,
+    "avatar_initials": "EV",
+    "status_tag": "NOMINAL",
+    "current_vitals": {
+      "heart_rate_bpm": 64,
+      "blood_sugar_mg_dl": 92,
+      "systolic_bp": 116,
+      "diastolic_bp": 74,
+      "spo2_percent": 98.6,
+      "cortisol_ug_dl": 11.5
+    },
+    "vitals_history": [
+      {
+        "time": "08:00",
+        "heart_rate_bpm": 61,
+        "blood_sugar_mg_dl": 90,
+        "cortisol_ug_dl": 14.8
+      },
+      {
+        "time": "10:00",
+        "heart_rate_bpm": 63,
+        "blood_sugar_mg_dl": 93,
+        "cortisol_ug_dl": 14.3
+      },
+      {
+        "time": "12:00",
+        "heart_rate_bpm": 66,
+        "blood_sugar_mg_dl": 96,
+        "cortisol_ug_dl": 12.6
+      },
+      {
+        "time": "14:00",
+        "heart_rate_bpm": 65,
+        "blood_sugar_mg_dl": 92,
+        "cortisol_ug_dl": 12.1
+      },
+      {
+        "time": "16:00",
+        "heart_rate_bpm": 64,
+        "blood_sugar_mg_dl": 92,
+        "cortisol_ug_dl": 11.5
+      }
+    ],
+    "body_highlights": {
+      "physical": [
+        {
+          "zone": "heart",
+          "label": "Stable Resting HR",
+          "severity": "NOMINAL",
+          "detail": "64 BPM resting rate within personal baseline."
+        },
+        {
+          "zone": "lungs",
+          "label": "Optimal Oxygenation",
+          "severity": "NOMINAL",
+          "detail": "SpO2 holding at 98.6% across all shifts."
+        }
+      ],
+      "mental": [
+        {
+          "zone": "brain",
+          "label": "Healthy Cortisol Rhythm",
+          "severity": "NOMINAL",
+          "detail": "Cortisol tapering normally from 14.8 to 11.5 ug/dL over the day."
+        }
+      ]
+    },
+    "mental_reports": [
+      {
+        "id": "rep-001",
+        "created_at": "Mission Day 114",
+        "session_mode": "BRIEF_CHECKIN",
+        "headline": "Steady Command Rhythm & Good Crew Cohesion",
+        "summary": "Commander reported restful sleep, good energy and positive crew morale following the week-16 resupply docking.",
+        "biometric_correlation": "Resting HR 63 BPM and cortisol 11.8 ug/dL consistent with a well-regulated circadian rhythm.",
+        "earth_status": "REVIEWED_BY_EARTH",
+        "earth_psychologist_directive": "Maintain current sleep schedule and continue weekly crew debriefs; no intervention required."
+      }
+    ]
+  },
+  {
+    "id": "astro-chen",
+    "name": "Eng. Marcus Chen",
+    "role": "Flight Engineer",
+    "mission_day": 118,
+    "avatar_initials": "MC",
+    "status_tag": "ADVISORY",
+    "current_vitals": {
+      "heart_rate_bpm": 98,
+      "blood_sugar_mg_dl": 62,
+      "systolic_bp": 132,
+      "diastolic_bp": 84,
+      "spo2_percent": 96.8,
+      "cortisol_ug_dl": 17.8
+    },
+    "vitals_history": [
+      {
+        "time": "08:00",
+        "heart_rate_bpm": 74,
+        "blood_sugar_mg_dl": 95,
+        "cortisol_ug_dl": 14.2
+      },
+      {
+        "time": "10:00",
+        "heart_rate_bpm": 81,
+        "blood_sugar_mg_dl": 83,
+        "cortisol_ug_dl": 15.2
+      },
+      {
+        "time": "12:00",
+        "heart_rate_bpm": 88,
+        "blood_sugar_mg_dl": 74,
+        "cortisol_ug_dl": 16.5
+      },
+      {
+        "time": "14:00",
+        "heart_rate_bpm": 93,
+        "blood_sugar_mg_dl": 67,
+        "cortisol_ug_dl": 16.3
+      },
+      {
+        "time": "16:00",
+        "heart_rate_bpm": 98,
+        "blood_sugar_mg_dl": 62,
+        "cortisol_ug_dl": 17.8
+      }
+    ],
+    "body_highlights": {
+      "physical": [
+        {
+          "zone": "metabolic",
+          "label": "Hypoglycemic Trend",
+          "severity": "ADVISORY",
+          "detail": "Blood sugar dropped from 95 to 62 mg/dL post-EVA prep."
+        },
+        {
+          "zone": "heart",
+          "label": "Elevated Exertion HR",
+          "severity": "ADVISORY",
+          "detail": "98 BPM elevated during airlock calibration."
+        }
+      ],
+      "mental": [
+        {
+          "zone": "brain",
+          "label": "Mild Cortisol Drift",
+          "severity": "ADVISORY",
+          "detail": "Cortisol at 17.8 ug/dL linked to skipped meal & task load."
+        }
+      ]
+    },
+    "mental_reports": [
+      {
+        "id": "rep-101",
+        "created_at": "Mission Day 115",
+        "session_mode": "DEEP_SUPPORT",
+        "headline": "Post-EVA Fatigue & Nutritional Timing Drift",
+        "summary": "Astronaut reported mild lightheadedness and reduced focus after delaying midday nutrition during EVA suit checks.",
+        "biometric_correlation": "Blood glucose dropped to 62 mg/dL alongside compensatory HR rise (98 BPM).",
+        "earth_status": "REVIEWED_BY_EARTH",
+        "earth_psychologist_directive": "Enforce mandatory pre-EVA carbohydrate intake and 20-minute post-shift decompression; follow up with BLUE tomorrow."
+      }
+    ]
+  },
+  {
+    "id": "astro-lin",
+    "name": "Spec. Maya Lin",
+    "role": "Mission Specialist",
+    "mission_day": 118,
+    "avatar_initials": "ML",
+    "status_tag": "ADVISORY",
+    "current_vitals": {
+      "heart_rate_bpm": 82,
+      "blood_sugar_mg_dl": 86,
+      "systolic_bp": 122,
+      "diastolic_bp": 78,
+      "spo2_percent": 98.1,
+      "cortisol_ug_dl": 22.4
+    },
+    "vitals_history": [
+      {
+        "time": "08:00",
+        "heart_rate_bpm": 72,
+        "blood_sugar_mg_dl": 88,
+        "cortisol_ug_dl": 15.1
+      },
+      {
+        "time": "11:00",
+        "heart_rate_bpm": 77,
+        "blood_sugar_mg_dl": 90,
+        "cortisol_ug_dl": 14.5
+      },
+      {
+        "time": "14:00",
+        "heart_rate_bpm": 76,
+        "blood_sugar_mg_dl": 90,
+        "cortisol_ug_dl": 13.2
+      },
+      {
+        "time": "17:00",
+        "heart_rate_bpm": 82,
+        "blood_sugar_mg_dl": 89,
+        "cortisol_ug_dl": 16.9
+      },
+      {
+        "time": "20:00",
+        "heart_rate_bpm": 80,
+        "blood_sugar_mg_dl": 86,
+        "cortisol_ug_dl": 20.6
+      },
+      {
+        "time": "22:00",
+        "heart_rate_bpm": 82,
+        "blood_sugar_mg_dl": 86,
+        "cortisol_ug_dl": 22.4
+      }
+    ],
+    "body_highlights": {
+      "physical": [
+        {
+          "zone": "heart",
+          "label": "Evening HR Creep",
+          "severity": "NOMINAL",
+          "detail": "HR rising gently to 82 BPM late evening; within operational bounds."
+        }
+      ],
+      "mental": [
+        {
+          "zone": "brain",
+          "label": "Elevated Evening Cortisol",
+          "severity": "ADVISORY",
+          "detail": "Cortisol at 22.4 ug/dL at 22:00 \u2014 inverted circadian curve over 3 sleep cycles."
+        }
+      ]
+    },
+    "mental_reports": [
+      {
+        "id": "rep-201",
+        "created_at": "Mission Day 112",
+        "session_mode": "DEEP_SUPPORT",
+        "headline": "Early Signs of Isolation & Sleep Fragmentation",
+        "summary": "Specialist described waking twice per night and feeling disconnected from the crew rotation during the long lab cycle.",
+        "biometric_correlation": "Evening cortisol trending upward (18.9 ug/dL) with no matching physical exertion.",
+        "earth_status": "REVIEWED_BY_EARTH",
+        "earth_psychologist_directive": "Schedule two shared crew meals per day, a weekly private family call, and dim cabin lighting 60 minutes before sleep."
+      }
+    ]
+  }
+]
