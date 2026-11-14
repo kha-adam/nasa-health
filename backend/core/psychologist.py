@@ -1,10 +1,10 @@
 """BLUE — adaptive aerospace psychologist engine (deterministic MVP).
 
 AGENTS.md Section 5:
-* BRIEF_CHECKIN when every vital is nominal and the astronaut voices no
-  distress: 2 warm questions, then an offer to wrap up.
-* DEEP_SUPPORT when any vital is out of range (glucose < 72 mg/dL,
-  HR > 100 BPM, cortisol > 16.0 ug/dL) OR the astronaut mentions fatigue,
+* BRIEF_CHECKIN when the astronaut's status and every personal reading are
+  nominal and they voice no distress: 2 warm questions, then an offer to wrap up.
+* DEEP_SUPPORT when the status tag is ADVISORY/URGENT, any personal reading is
+  out of range (see core/metrics.py), OR the astronaut mentions fatigue,
   anxiety, sleep issues, etc.: 3-5 empathetic, targeted follow-ups.
 
 The engine is fully scripted per canonical profile so the demo never depends
@@ -16,14 +16,8 @@ from __future__ import annotations
 
 import re
 
-from schemas import AstronautProfile, ChatMessage, CurrentVitals, SessionMode
-
-EARTH_DELAY = "20m 42s"
-
-# Nominal thresholds (AGENTS.md §5.1)
-MIN_BLOOD_SUGAR = 72.0
-MAX_HEART_RATE = 100.0
-MAX_CORTISOL = 16.0
+from core.metrics import BY_KEY
+from schemas import AstronautProfile, ChatMessage, SessionMode
 
 # --------------------------------------------------------------------------
 # Themes detected in the astronaut's own words
@@ -66,23 +60,29 @@ def user_text(messages: list[ChatMessage]) -> str:
 # --------------------------------------------------------------------------
 
 
-def vital_flags(v: CurrentVitals) -> list[str]:
-    flags = []
-    if v.blood_sugar_mg_dl < MIN_BLOOD_SUGAR:
-        flags.append("glucose")
-    if v.heart_rate_bpm > MAX_HEART_RATE:
-        flags.append("heart_rate")
-    if v.cortisol_ug_dl > MAX_CORTISOL:
-        flags.append("cortisol")
-    return flags
+def flagged_metrics(profile: AstronautProfile) -> list[str]:
+    """Personal (non-environment) metrics currently out of range."""
+    return [
+        key
+        for key, status in profile.metric_status.items()
+        if status != "NOMINAL" and key in BY_KEY and BY_KEY[key].category != "environment"
+    ]
 
 
 def determine_mode(profile: AstronautProfile, messages: list[ChatMessage]) -> SessionMode:
-    if vital_flags(profile.current_vitals):
+    if profile.status_tag != "NOMINAL" or flagged_metrics(profile):
         return "DEEP_SUPPORT"
     if DISTRESS_THEMES & set(detect_themes(user_text(messages))):
         return "DEEP_SUPPORT"
     return "BRIEF_CHECKIN"
+
+
+def earth_delay(profile: AstronautProfile) -> str:
+    minutes = profile.current_vitals.earth_delay_min
+    if minutes is None:
+        return "current"
+    m = int(minutes)
+    return f"{m}m {round((minutes - m) * 60):02d}s"
 
 
 # --------------------------------------------------------------------------
@@ -93,35 +93,33 @@ def determine_mode(profile: AstronautProfile, messages: list[ChatMessage]) -> Se
 
 QUESTIONS: dict[tuple[str, SessionMode], list[str]] = {
     ("astro-vance", "BRIEF_CHECKIN"): [
-        "Good evening, Commander Vance. Your vitals look steady today — resting heart rate at 64 and cortisol tapering "
-        "nicely through the shift. How has your energy been today?",
+        "Good evening, Commander Vance. Your readings look steady and your sleep held up well through the cabin "
+        "CO₂ issue. How has your energy been today?",
         "How is the crew feeling from where you sit — morale, communication, anything you think I should know about?",
     ],
     ("astro-vance", "DEEP_SUPPORT"): [
-        "Good evening, Commander Vance. Your vitals look steady today. How has your energy been?",
+        "Good evening, Commander Vance. Your readings look steady today. How has your energy been?",
         "Even when the numbers look fine, how you feel matters most. Can you tell me a little more about when that "
         "feeling tends to show up — during command duties, or more in your off-hours?",
         "How has your sleep been over the last few nights — falling asleep, staying asleep, waking up rested?",
         "Is there anything about the responsibility of command that has been sitting heavier than usual lately?",
     ],
     ("astro-chen", "DEEP_SUPPORT"): [
-        "Hi Marcus, it's BLUE. Today's EVA prep looks like it was demanding — your blood sugar has drifted from 95 "
-        "down to 62 mg/dL and your heart rate is sitting around 98. Before anything else, how are you feeling "
-        "physically right now?",
-        "When did you last get a proper meal or snack in — did the airlock schedule push it back?",
-        "That kind of task load adds up. How much pressure have you been feeling around the EVA timeline — would you "
-        "call it manageable, or closer to overwhelming?",
-        "How has your sleep been the last couple of nights — are you getting enough recovery between shifts?",
+        "Hi Marcus, it's BLUE. Your sleep has been more broken than usual over the last couple of weeks, and your "
+        "stress markers rose before easing after the evening lighting change. How are you feeling tonight?",
+        "When you wake up during the night, what tends to be on your mind — work, or something else?",
+        "How heavy has the troubleshooting workload felt this week — manageable, or closer to overwhelming?",
+        "Since the evening lighting moved earlier, have you noticed any difference in how easily you fall asleep?",
         "One last question: what is one thing that would make tomorrow's shift feel more manageable for you?",
     ],
     ("astro-lin", "DEEP_SUPPORT"): [
-        "Hi Maya, I noticed your evening cortisol has been elevated over the past few cycles. How are you holding up "
-        "today?",
-        "Have you noticed that fatigue affecting your focus during lab work, or is it mostly during off-duty hours?",
-        "Tell me about your nights — when you wake mid-sleep, what tends to be on your mind?",
-        "How connected do you feel to the rest of the crew right now — is there anyone on board you feel comfortable "
-        "talking to?",
-        "What usually helps you decompress in the evening, and have you been able to make time for it lately?",
+        "Hi Maya, it's BLUE. I saw what happened on the treadmill on day {acute_day} — that must have been "
+        "frightening. How are you feeling now, physically?",
+        "Have you had any dizziness or breathlessness since then, even briefly?",
+        "How do you feel about getting back on the treadmill — is there any worry about it happening again?",
+        "How have your nights been since the episode — are you sleeping through?",
+        "You've been pushing hard on the lab schedule. Is there anything you'd like the crew or Earth to take off "
+        "your plate?",
     ],
 }
 
@@ -140,7 +138,7 @@ GENERIC_QUESTIONS: dict[SessionMode, list[str]] = {
 
 ACKNOWLEDGMENTS: dict[str, str] = {
     "physical": "Thank you for telling me — symptoms like that are important for me to track alongside your vitals.",
-    "nutrition": "That lines up with what I'm seeing in your glucose curve today.",
+    "nutrition": "Meal timing matters a lot on long shifts — thank you for mentioning it.",
     "sleep": "Fragmented sleep can wear anyone down over long stretches, {first}.",
     "isolation": "Feeling out of sync with the crew is something many long-duration astronauts describe. I'm glad you said it out loud.",
     "anxiety": "It makes sense to feel that pressure given what's on your plate. You don't have to carry it alone.",
@@ -175,11 +173,15 @@ def first_name(profile: AstronautProfile) -> str:
     return parts[1] if len(parts) > 1 else parts[0]
 
 
+def _context(profile: AstronautProfile) -> dict[str, object]:
+    acute = next((e for e in profile.events if e.code == "ACUTE_DIZZINESS_BREATHLESSNESS"), None)
+    return {"first": first_name(profile), "acute_day": acute.mission_day if acute else profile.mission_day}
+
+
 def _questions(profile: AstronautProfile, mode: SessionMode) -> list[str]:
-    script = QUESTIONS.get((profile.id, mode))
-    if script is None:
-        script = [q.format(first=first_name(profile)) for q in GENERIC_QUESTIONS[mode]]
-    return script
+    script = QUESTIONS.get((profile.id, mode)) or GENERIC_QUESTIONS[mode]
+    ctx = _context(profile)
+    return [q.format(**ctx) for q in script]
 
 
 def _acknowledge(profile: AstronautProfile, last_user: str, history: list[ChatMessage]) -> tuple[str, bool]:
@@ -221,4 +223,4 @@ def scripted_reply(profile: AstronautProfile, messages: list[ChatMessage]) -> tu
 
 
 def closing_reply(profile: AstronautProfile) -> str:
-    return CLOSING.format(first=first_name(profile), delay=EARTH_DELAY)
+    return CLOSING.format(first=first_name(profile), delay=earth_delay(profile))

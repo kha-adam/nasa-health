@@ -1,5 +1,5 @@
 import type { StatusTag } from "@/types/blue";
-import { STATUS_STYLES } from "@/lib/vitals";
+import { STATUS_STYLES } from "@/lib/metrics";
 
 export default function StatusBadge({ status, className = "" }: { status: StatusTag; className?: string }) {
   const s = STATUS_STYLES[status];
