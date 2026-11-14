@@ -85,7 +85,7 @@ function Dashboard() {
   if (!profile || profile.id !== astronautId) return <FullScreenLoader />;
 
   return (
-    <div className="flex h-screen min-h-[720px] flex-col gap-4 p-4">
+    <div className="flex min-h-screen flex-col gap-4 p-4 lg:h-screen lg:min-h-[720px]">
       <TopNavBar
         profile={profile}
         panel={panel}
@@ -93,10 +93,10 @@ function Dashboard() {
         onSwitchAstronaut={() => router.push("/")}
       />
 
-      <main className="grid min-h-0 flex-1 grid-cols-[30fr_38fr_32fr] grid-rows-1 gap-4">
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,30fr)_minmax(0,38fr)_minmax(0,32fr)] lg:grid-rows-1">
         <PhysicalChartsPanel profile={profile} panel={panel} />
         <HumanBodyModel profile={profile} panel={panel} />
-        <div className="flex min-h-0 flex-col pb-24">
+        <div className="flex min-h-0 flex-col pb-24 md:col-span-2 lg:col-span-1">
           <MentalReportsPanel
             reports={profile.mental_reports}
             onSimulateEarthReply={handleEarthReply}

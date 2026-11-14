@@ -197,6 +197,19 @@ def _acknowledge(profile: AstronautProfile, last_user: str, history: list[ChatMe
     return NEUTRAL_ACKS[0], False
 
 
+def conversational_answer(text: str) -> str | None:
+    """Answer common direct questions even when the live language model is unavailable."""
+    if re.search(r"how (?:are|r) you|how(?:'s| is) (?:your day|it going)|comment (?:ça va|vas[- ]tu|tu vas|allez[- ]vous)", text, re.I):
+        return "I'm here and ready to help—thanks for asking! How are you feeling today?"
+    if re.search(r"who are you|what(?:'s| is) your name|qui es[- ]tu|comment tu t.appelles", text, re.I):
+        return "I'm BLUE, your AI companion for the mission. I can listen, help you reflect, and summarize your check-in for the Earth psychologist."
+    if re.search(r"not ready|don'?t want (?:a |the )?survey|just (?:want to )?(?:talk|chat)|pas prêt|pas envie", text, re.I):
+        return "Of course—we can take it at your pace. What would you like to talk about?"
+    if re.search(r"why (?:do you|are you)|what is (?:this|the) survey|what.*check.in", text, re.I):
+        return "The check-in helps connect how you're feeling with your recent readings, so you and the Earth team have useful context. You can pause or skip it whenever you want."
+    return None
+
+
 def scripted_reply(profile: AstronautProfile, messages: list[ChatMessage]) -> tuple[str, SessionMode, bool]:
     """Return (reply, session_mode, suggested_to_wrap_up) for the next turn."""
     mode = determine_mode(profile, messages)
@@ -208,10 +221,13 @@ def scripted_reply(profile: AstronautProfile, messages: list[ChatMessage]) -> tu
         return script[0], mode, False
 
     last = user_turns[-1].content
+    direct = conversational_answer(last)
+    if direct:
+        return direct, mode, False
     ack, themed = _acknowledge(profile, last, messages[:-1])
 
     wants_out = any(re.search(p, last.lower()) for p in WRAP_PATTERNS)
-    answered = len(user_turns)
+    answered = sum(conversational_answer(message.content) is None for message in user_turns)
     if wants_out or answered >= len(script):
         wrap = WRAP_UP[mode].format(first=first)
         # The wrap-up already thanks the astronaut; only keep a meaningful ack.
