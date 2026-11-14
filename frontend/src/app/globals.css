@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Project BLUE clinical light-blue & white palette (AGENTS.md §1). Light theme only. */
+@theme {
+  --color-canvas: #f4f9ff;
+  --color-card: #ffffff;
+  --color-line: #dbeafe;
+  --color-sky: #0284c7;
+  --color-sky-hover: #0369a1;
+  --color-sky-light: #38bdf8;
+  --color-tint: #e0f2fe;
+  --color-tint-strong: #bae6fd;
+  --color-ink: #0f172a;
+  --color-ink-soft: #475569;
+  --color-nominal: #0d9488;
+  --color-advisory: #d97706;
+  --color-urgent: #dc2626;
+
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(2 132 199 / 0.06);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-tint-strong) transparent;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.marker-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse-ring 1.8s ease-out infinite;
+}
