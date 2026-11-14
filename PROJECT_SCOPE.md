@@ -20,9 +20,9 @@ Because deep-space communication latency reaches **up to 20+ minutes one-way**, 
 
 **Project BLUE** is a unified, light-blue and white clinical web application that bridges daily biometric tracking with empathetic, adaptive psychological support:
 
-1. **Astronaut Identity Selection:** Crew members select their astronaut profile upon entry to load personalized longitudinal biometrics, mission context, and psychological history.
+1. **Private Sign-In:** Each crew member signs in and sees only their own biometrics, mission context and psychological history. A flight-surgeon account sees the crew's physical data but never mental-health reports or BLUE conversations.
 2. **Spatial 3-Column Health Dashboard:**
-   * **Left Panel (Physical Telemetry):** Interactive charts and live metrics for Heartbeat ($\text{BPM}$), Blood Sugar ($\text{mg/dL}$), Blood Pressure ($\text{mmHg}$), Blood Oxygen ($\text{SpO}_2$), and Cortisol ($\mu\text{g/dL}$).
+   * **Left Panel (Key Readings):** The five most important readings for the active panel, each with a plain Normal / Watch / Urgent status — Heart rate, Blood pressure, SpO₂, Blood sugar and salivary Cortisol (nmol/L) on the Physical Panel. Every reading opens a detail page with charts over 24 h, 7 days, 30 days or the whole mission, plus 20+ further metrics (HRV, respiration, temperature, sleep, voice stress, cabin CO₂, radiation…).
    * **Center Stage (Interactive Human Model):** An anatomical human body visualization linking physical vitals and psychological stress markers directly to physiological systems, adapting dynamically when switching between the **Physical Panel** and **Mental Panel** views.
    * **Right Panel (Mental Health Reports & Earth Link):** A longitudinal log of psychological check-in summaries, risk assessments, and actionable directives sent back from Earth's flight psychologist.
 3. **Conversational Voice AI Psychologist ("BLUE"):** Triggered via a round floating voice button in the bottom-right corner, **BLUE** speaks and listens like a calm, perceptive human psychologist. It tailors its questioning depth to the astronaut's current physical and emotional state—conducting a brief check-in when everything looks steady, or asking thoughtful follow-up questions when biomarkers or vocal cues suggest strain—and automatically writes a structured **Summary Report for Earth** so a real psychologist can review the case and prescribe next steps.
@@ -31,28 +31,28 @@ Because deep-space communication latency reaches **up to 20+ minutes one-way**, 
 
 ## 2. Core User Journey & Canonical Crew Profiles
 
-### Step 1: Astronaut Crew Selector (3 Canonical Profiles)
+### Step 1: Sign-In & the 3 Canonical Crew Profiles
 
-Upon opening the web app, the user chooses which astronaut they are from **three canonical crew personas**, each backed by real physiological and stress trajectories:
+The app opens on a login screen. Astronauts land on their own dashboard; the flight surgeon lands on a crew overview. All data comes from the ASTRA simulated mission telemetry (`data/source/astra_donnees_simulees.csv`, extended back to mission day 1), crew members C1–C3:
 
 1. **Commander — Cmdr. Elena Vance (`astro-vance` | Nominal Baseline):**
-   * **Clinical Profile:** Steady resting heart rate ($\approx 64\ \text{BPM}$), stable blood glucose ($\approx 92\ \text{mg/dL}$), normal blood pressure ($116/74\ \text{mmHg}$), $\text{SpO}_2$ ($98.6\%$), and low baseline cortisol ($11.5\ \mu\text{g/dL}$).
-   * **Demo Purpose:** Demonstrates a healthy baseline state and triggers BLUE's concise **`BRIEF_CHECKIN`** conversational mode.
-2. **Flight Engineer — Eng. Marcus Chen (`astro-chen` | Physical Strain & Hypoglycemic Trend):**
-   * **Clinical Profile:** Dropping blood sugar curve ($95 \rightarrow 62\ \text{mg/dL}$) and elevated heart rate ($98\ \text{BPM}$) following an intense EVA airlock prep shift, with borderline cortisol ($17.8\ \mu\text{g/dL}$).
-   * **Demo Purpose:** Showcases **Physical Panel** alerts, highlights metabolic and cardiovascular zones on the central human body model, and triggers BLUE's **`DEEP_SUPPORT`** mode.
-3. **Mission Specialist — Spec. Maya Lin (`astro-lin` | Isolation Fatigue & High Cortisol):**
-   * **Clinical Profile:** Elevated evening salivary cortisol ($22.4\ \mu\text{g/dL}$) and heightened state anxiety/affect drift over multiple sleep cycles, while core physical vitals remain within operational bounds.
-   * **Demo Purpose:** Showcases **Mental Panel** neuro-stress highlights, demonstrates empathetic psychological interviewing by BLUE, and generates a priority **Summary Report for Earth**.
+   * **Data story:** Steady readings throughout, including the cabin CO₂ scrubber fault on days 138–144.
+   * **Demo Purpose:** Healthy baseline; triggers BLUE's concise **`BRIEF_CHECKIN`** mode.
+2. **Flight Engineer — Eng. Marcus Chen (`astro-chen` | Sleep & Stress Drift):**
+   * **Data story:** Over days 136–146 sleep broke up (up to 7 awakenings a night), voice stress rose to 0.61, HRV fell to 32 ms and morning cortisol reached 21.9 nmol/L; the habitat moved evening lighting earlier on day 143 and the drift has been easing since.
+   * **Demo Purpose:** **Mental Panel** highlights, a two-report history with Earth guidance, and BLUE's **`DEEP_SUPPORT`** mode.
+3. **Mission Specialist — Spec. Maya Lin (`astro-lin` | Acute Episode Follow-Up):**
+   * **Data story:** Dizziness and breathlessness on the treadmill on day 148 (SpO₂ 88.5 %, HR 141 BPM), recovered within the hour; morning cortisol 19.9 nmol/L still above the alert line.
+   * **Demo Purpose:** **Physical Panel** lung and heart highlights, the episode visible as a marked dip on the SpO₂ chart, and a queued priority **Summary Report for Earth**.
 
 ### Step 2: Unified Dashboard with Physical / Mental Panel Switcher
 
-* **Top Control Bar:** Displays the active astronaut's profile, mission day, Earth communication delay indicator (`20m 42s Delay`), and a prominent **`Physical Panel` | `Mental Panel`** mode switcher.
+* **Top Control Bar:** Displays the active astronaut's profile, mission day, Earth communication delay indicator (from the data, e.g. `21m 52s Delay`), and a prominent **`Physical Panel` | `Mental Panel`** mode switcher.
   * **Physical Panel Focus:** Emphasizes cardiovascular, metabolic, and respiratory chart detail on the left and highlights organ/system nodes (Heart, Metabolic/Glucose, Lungs) on the central human body model.
   * **Mental Panel Focus:** Highlights neurological/cortisol stress pathways on the central human model, surfaces cognitive load & mood trends, and expands Earth psychologist report details on the right.
-* **Left Column — Physiological Charts & Telemetry:** Clean time-series line/area charts and current readouts for **Heartbeat ($\text{BPM}$)**, **Blood Sugar ($\text{mg/dL}$)**, **Blood Pressure ($\text{mmHg}$)**, **$\text{SpO}_2$ ($\%$)**, and **Cortisol ($\mu\text{g/dL}$)**.
+* **Left Column — Key Readings:** Current value and status only. Detailed charts (normal-range band, low–high band, numbered mission events, statistics, data table) live on per-metric detail pages one click away.
 * **Center Column — Interactive Human Model:** Clean anatomical silhouette in light blue and white with clickable, status-aware body zones showing real-time physical and psychological stress indicators.
-* **Right Column — Mental Health Reports:** Displays chronological psychological summary reports generated by BLUE, Earth transmission status (`QUEUED_FOR_EARTH`, `REVIEWED_BY_EARTH`), and clinical guidance from Earth.
+* **Right Column — Mental Health Reports (private):** One-line headlines of the psychological summary reports generated by BLUE, opening to the full report, with Earth transmission status (`QUEUED_FOR_EARTH`, `REVIEWED_BY_EARTH`), and clinical guidance from Earth.
 
 ### Step 3: Bottom-Right Voice AI Psychologist ("BLUE")
 
@@ -68,19 +68,12 @@ Upon opening the web app, the user chooses which astronaut they are from **three
 
 ---
 
-## 3. Open-Access Data Strategy & Static Seed Rule
+## 3. Data Strategy & Static Seed Rule
 
-To guarantee offline reliability and zero credential bottlenecks during the hackathon, all biometric and psychological trajectories are extracted from **open-access datasets** and normalized once into a static seed file (`backend/data/astronauts.json`):
-
-| Project BLUE Layer | Approved Open-Access Dataset | Access Method | Extracted Signals |
-| :--- | :--- | :--- | :--- |
-| **Heartbeat, $\text{SpO}_2$, BP & Glucose** | **PhysioNet Open Access** (`mimic-iv-demo` v2.2 & `pulse-transit-time-ppg`) | `pip install physionet` $\rightarrow$ `physionet download mimic-iv-demo --version 2.2` (no login required) | Heart rate, systolic/diastolic blood pressure, $\text{SpO}_2$, and blood glucose trajectories. |
-| **Wearable Stress & HRV Curves** | **PhysioNet Wearable Stress Dataset** (`wearable-device-dataset` v1.0.1) & **WESAD** | `physionet download wearable-device-dataset --version 1.0.1` ($\approx 69.7\ \text{MB}$) / UCI ML Repository | Clean `IBI.csv` (heart rate variability), `TEMP.csv`, and `EDA.csv` baseline vs. stress windows. |
-| **Cortisol & Anxiety Logs** | **MAST Acute Stress & Cortisol Dataset** (OSF) | Open CSV tables via Open Science Framework (OSF) | Time-stamped salivary cortisol curves paired with state anxiety and positive/negative affect scores. |
-| **Spaceflight Analog Context** | **NASA Open Science Data Repository (OSDR)** | Public studies at `osdr.nasa.gov/bio/repo` | Inspiration4 physiological assays and analog isolation/bed-rest baselines. |
-| **Vocal Stress Calibration** | **RAVDESS** (Audio-Only Subset) | 1,440 speech-only `.wav` files ($\approx 200\ \text{MB}$) | Labeled `calm`, `neutral`, `sad`, and `fearful` speech clips for calibrating BLUE's empathetic tone. |
-
-* **Static Seed Mandate (`backend/data/astronauts.json`):** A standalone preprocessing script (`scripts/build_mock_data.py`) converts sampled rows from these open CSVs into `backend/data/astronauts.json`, which is committed directly to `main`. Neither the backend API nor the frontend ever parses raw clinical CSVs or makes external dataset network calls at runtime.
+* **Source:** `data/source/astra_donnees_simulees.csv` — ASTRA simulated mission telemetry (4 crew, mission days 120–150, 15-minute cadence, 37 columns including vitals, HRV, glucose, voice stress, salivary cortisol, sleep, cabin environment, radiation and labelled events).
+* **Expansion:** `scripts/expand_dataset.py` extends it back to mission day 1 (`astra_donnees_etendues.csv`) by resampling the crew's own nominal days with day-to-day drift, keeping cabin data shared across the crew and rebuilding cumulative radiation, Earth delay and weekly body mass for continuity. Original rows are kept verbatim; synthetic rows are tagged `simule_etendu`.
+* **Static seed:** `scripts/build_mock_data.py` derives everything the app shows — current values, status tags, body highlights, mission events, seeded reports, and history at three resolutions — into `backend/data/astronauts.json` and `backend/data/telemetry/*.json`. The API never parses CSV at runtime.
+* **Calibration references (future):** PhysioNet `mimic-iv-demo` / `wearable-device-dataset`, WESAD, the OSF MAST cortisol tables, NASA OSDR and RAVDESS remain the approved open-access sources for validating ranges and BLUE's tone.
 
 ---
 
@@ -88,10 +81,10 @@ To guarantee offline reliability and zero credential bottlenecks during the hack
 
 ### In Scope (48-Hour Hackathon Deliverable)
 
-1. **Astronaut Selection Screen:** The 3 canonical astronaut personas (`astro-vance`, `astro-chen`, `astro-lin`) loaded from `backend/data/astronauts.json`.
+1. **Login & privacy:** Per-astronaut accounts plus a flight-surgeon account, server-enforced access rules, httpOnly session cookie.
 2. **Light Blue & White 3-Column Crew Dashboard:**
    * Top switcher between **Physical Panel** and **Mental Panel**.
-   * Left column interactive charts (Heartbeat, Blood Sugar, Blood Pressure, $\text{SpO}_2$, Cortisol).
+   * Left column key readings, with detailed per-metric chart pages behind them.
    * Center interactive anatomical **Human Model** linked to live metrics and panel mode.
    * Right column **Mental Health Reports** feed with Earth transmission status and psychologist directives.
 3. **Bottom-Right Round Voice AI Button ("BLUE"):**
@@ -109,7 +102,7 @@ To guarantee offline reliability and zero credential bottlenecks during the hack
 
 ## 5. 3-Minute Live Demo Storyboard
 
-1. **0:00 – 0:30 | Astronaut Selection & Nominal Baseline:** Open the light-blue/white portal. Briefly highlight **Cmdr. Elena Vance** (Nominal) before selecting **Eng. Marcus Chen** (Physical Strain: dropping blood sugar $95 \rightarrow 62\ \text{mg/dL}$) or **Spec. Maya Lin** (Isolation Fatigue: elevated cortisol $22.4\ \mu\text{g/dL}$).
-2. **0:30 – 1:15 | Dashboard & Physical/Mental Panel Switching:** Walk judges through the 3-column layout: left physiological charts, center anatomical human model highlighting affected body systems, and right mental health reports. Toggle between **Physical Panel** and **Mental Panel** to show dynamic focus adaptation.
-3. **1:15 – 2:25 | Talking to BLUE (Adaptive Psychologist AI):** Click the **round voice button in the bottom-right corner**. Speak naturally about feeling mentally drained, anxious, or lightheaded after an EVA prep shift. Show how BLUE responds like a human psychologist, asks targeted follow-up questions due to the elevated cortisol/glucose context, and wraps up naturally.
+1. **0:00 – 0:30 | Sign-In & Privacy:** Sign in as the flight surgeon to show the crew overview (physical data only, reports hidden), then sign in as **Spec. Maya Lin** (acute episode on day 148) or **Eng. Marcus Chen** (sleep & stress drift).
+2. **0:30 – 1:15 | Dashboard & Physical/Mental Panel Switching:** Walk judges through the 3-column layout: left key readings (click SpO₂ to show the day-148 dip on the detailed chart), center anatomical human model highlighting affected body systems, and right mental health reports. Toggle between **Physical Panel** and **Mental Panel** to show dynamic focus adaptation.
+3. **1:15 – 2:25 | Talking to BLUE (Adaptive Psychologist AI):** Click the **round voice button in the bottom-right corner**. Speak naturally about feeling mentally drained, anxious, or dizzy on the treadmill. Show how BLUE responds like a human psychologist, asks targeted follow-up questions because of the recent episode and stress markers, and wraps up naturally.
 4. **2:25 – 3:00 | Earth Summary Report & Clinician Reply:** Watch BLUE automatically publish a structured **Earth Psychologist Summary Report** into the right column, then trigger the Earth psychologist's directive (`"What to Do"`) to complete the deep-space care loop.
