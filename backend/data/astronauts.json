@@ -3,83 +3,145 @@
     "id": "astro-vance",
     "name": "Cmdr. Elena Vance",
     "role": "Commander",
-    "mission_day": 118,
+    "mission_day": 150,
     "avatar_initials": "EV",
     "status_tag": "NOMINAL",
+    "status_summary": "All readings within normal range.",
+    "last_reading_at": "2035-10-06T23:45:00Z",
+    "last_activity": "Asleep",
     "current_vitals": {
-      "heart_rate_bpm": 64,
-      "blood_sugar_mg_dl": 92,
-      "systolic_bp": 116,
-      "diastolic_bp": 74,
-      "spo2_percent": 98.6,
-      "cortisol_ug_dl": 11.5
+      "heart_rate_bpm": 48.0,
+      "hr_webcam_bpm": 46.0,
+      "hrv_rmssd_ms": 67.5,
+      "systolic_bp": 101.0,
+      "diastolic_bp": 67.0,
+      "spo2_percent": 97.5,
+      "resp_rate_bpm": 13.0,
+      "core_temp_c": 36.59,
+      "blood_sugar_mg_dl": 87.0,
+      "voice_stress_index": 0.21,
+      "speech_rate_wpm": 149.0,
+      "blink_rate_per_min": 18.1,
+      "cortisol_nmol_l": 16.0,
+      "sleep_hours": 6.81,
+      "sleep_efficiency_pct": 92.6,
+      "sleep_awakenings": 2.0,
+      "body_mass_kg": 77.96,
+      "radiation_cum_msv": 273.75,
+      "cabin_co2_mmhg": 2.56,
+      "cabin_ppo2_kpa": 21.85,
+      "cabin_pressure_kpa": 101.11,
+      "cabin_temp_c": 23.02,
+      "cabin_humidity_pct": 48.8,
+      "noise_dba": 51.3,
+      "light_lux": 0.0,
+      "light_cct_k": 0.0,
+      "radiation_rate_usv_h": 77.5,
+      "earth_delay_min": 21.87
     },
-    "vitals_history": [
-      {
-        "time": "08:00",
-        "heart_rate_bpm": 61,
-        "blood_sugar_mg_dl": 90,
-        "cortisol_ug_dl": 14.8
-      },
-      {
-        "time": "10:00",
-        "heart_rate_bpm": 63,
-        "blood_sugar_mg_dl": 93,
-        "cortisol_ug_dl": 14.3
-      },
-      {
-        "time": "12:00",
-        "heart_rate_bpm": 66,
-        "blood_sugar_mg_dl": 96,
-        "cortisol_ug_dl": 12.6
-      },
-      {
-        "time": "14:00",
-        "heart_rate_bpm": 65,
-        "blood_sugar_mg_dl": 92,
-        "cortisol_ug_dl": 12.1
-      },
-      {
-        "time": "16:00",
-        "heart_rate_bpm": 64,
-        "blood_sugar_mg_dl": 92,
-        "cortisol_ug_dl": 11.5
-      }
-    ],
+    "metric_status": {
+      "heart_rate": "NOMINAL",
+      "blood_pressure": "NOMINAL",
+      "spo2": "NOMINAL",
+      "glucose": "NOMINAL",
+      "respiration": "NOMINAL",
+      "core_temp": "NOMINAL",
+      "hrv": "NOMINAL",
+      "cortisol": "NOMINAL",
+      "sleep_duration": "NOMINAL",
+      "sleep_efficiency": "NOMINAL",
+      "sleep_awakenings": "NOMINAL",
+      "body_mass": "NOMINAL",
+      "voice_stress": "NOMINAL",
+      "speech_rate": "NOMINAL",
+      "blink_rate": "NOMINAL",
+      "cabin_co2": "NOMINAL",
+      "cabin_o2": "NOMINAL",
+      "cabin_pressure": "NOMINAL",
+      "cabin_temp": "NOMINAL",
+      "cabin_humidity": "NOMINAL",
+      "noise": "NOMINAL",
+      "light": "NOMINAL",
+      "light_color": "NOMINAL",
+      "radiation_rate": "NOMINAL",
+      "radiation_total": "NOMINAL",
+      "earth_delay": "NOMINAL"
+    },
     "body_highlights": {
       "physical": [
         {
           "zone": "heart",
-          "label": "Stable Resting HR",
+          "label": "Resting heart rate 50 BPM",
           "severity": "NOMINAL",
-          "detail": "64 BPM resting rate within personal baseline."
+          "detail": "Average while asleep over the last night.",
+          "metric": "heart_rate"
         },
         {
           "zone": "lungs",
-          "label": "Optimal Oxygenation",
+          "label": "SpO₂ 97.8 %",
           "severity": "NOMINAL",
-          "detail": "SpO2 holding at 98.6% across all shifts."
+          "detail": "Average oxygen saturation over the last 24 hours.",
+          "metric": "spo2"
+        },
+        {
+          "zone": "metabolic",
+          "label": "Blood sugar 96 mg/dL",
+          "severity": "NOMINAL",
+          "detail": "Average over the last 24 hours.",
+          "metric": "glucose"
         }
       ],
       "mental": [
         {
           "zone": "brain",
-          "label": "Healthy Cortisol Rhythm",
+          "label": "Voice stress 0.23",
           "severity": "NOMINAL",
-          "detail": "Cortisol tapering normally from 14.8 to 11.5 ug/dL over the day."
+          "detail": "7-day average; sleep 6.6 h a night.",
+          "metric": "voice_stress"
         }
       ]
     },
+    "events": [
+      {
+        "id": "evt-vance-00",
+        "code": "VENTILATION_BOOSTED",
+        "scope": "cabin",
+        "severity": "NOMINAL",
+        "label": "Ventilation boosted",
+        "detail": "Habitat increased air circulation to bring cabin CO₂ back down.",
+        "mission_day": 144,
+        "start": "2035-09-30T08:00:00Z",
+        "end": null,
+        "metrics": [
+          "cabin_co2"
+        ]
+      },
+      {
+        "id": "evt-vance-01",
+        "code": "CO2_REMOVAL_DEGRADED",
+        "scope": "cabin",
+        "severity": "ADVISORY",
+        "label": "CO₂ removal system degrading",
+        "detail": "The CO₂ scrubber started losing efficiency; cabin CO₂ climbed over the following days.",
+        "mission_day": 138,
+        "start": "2035-09-24T00:00:00Z",
+        "end": null,
+        "metrics": [
+          "cabin_co2",
+          "respiration"
+        ]
+      }
+    ],
     "mental_reports": [
       {
         "id": "rep-001",
-        "created_at": "Mission Day 114",
+        "created_at": "Mission Day 146",
         "session_mode": "BRIEF_CHECKIN",
-        "headline": "Steady Command Rhythm & Good Crew Cohesion",
-        "summary": "Commander reported restful sleep, good energy and positive crew morale following the week-16 resupply docking.",
-        "biometric_correlation": "Resting HR 63 BPM and cortisol 11.8 ug/dL consistent with a well-regulated circadian rhythm.",
+        "headline": "Steady Command Rhythm Through the CO₂ Scrubber Fault",
+        "summary": "Commander reported good energy and steady crew morale during the cabin CO₂ fault. Mild afternoon headaches eased once ventilation was boosted.",
+        "biometric_correlation": "Resting HR 48 BPM, sleep 6.5 h a night and voice stress 0.25, all within range, while cabin CO₂ peaked at 4.7 mmHg (daily average).",
         "earth_status": "REVIEWED_BY_EARTH",
-        "earth_psychologist_directive": "Maintain current sleep schedule and continue weekly crew debriefs; no intervention required."
+        "earth_psychologist_directive": "No intervention required. Keep the current sleep schedule and weekly crew debriefs; report any return of headaches to the crew medical officer."
       }
     ]
   },
@@ -87,83 +149,201 @@
     "id": "astro-chen",
     "name": "Eng. Marcus Chen",
     "role": "Flight Engineer",
-    "mission_day": 118,
+    "mission_day": 150,
     "avatar_initials": "MC",
     "status_tag": "ADVISORY",
+    "status_summary": "Recovering from a sleep & stress drift (days 136–146).",
+    "last_reading_at": "2035-10-06T23:45:00Z",
+    "last_activity": "Asleep",
     "current_vitals": {
-      "heart_rate_bpm": 98,
-      "blood_sugar_mg_dl": 62,
-      "systolic_bp": 132,
-      "diastolic_bp": 84,
-      "spo2_percent": 96.8,
-      "cortisol_ug_dl": 17.8
+      "heart_rate_bpm": 52.0,
+      "hr_webcam_bpm": 53.0,
+      "hrv_rmssd_ms": 60.4,
+      "systolic_bp": 103.0,
+      "diastolic_bp": 68.0,
+      "spo2_percent": 98.1,
+      "resp_rate_bpm": 12.0,
+      "core_temp_c": 36.63,
+      "blood_sugar_mg_dl": 91.0,
+      "voice_stress_index": 0.25,
+      "speech_rate_wpm": 137.0,
+      "blink_rate_per_min": 17.4,
+      "cortisol_nmol_l": 17.4,
+      "sleep_hours": 7.13,
+      "sleep_efficiency_pct": 92.4,
+      "sleep_awakenings": 1.0,
+      "body_mass_kg": 61.08,
+      "radiation_cum_msv": 273.75,
+      "cabin_co2_mmhg": 2.56,
+      "cabin_ppo2_kpa": 21.85,
+      "cabin_pressure_kpa": 101.11,
+      "cabin_temp_c": 23.02,
+      "cabin_humidity_pct": 48.8,
+      "noise_dba": 51.3,
+      "light_lux": 0.0,
+      "light_cct_k": 0.0,
+      "radiation_rate_usv_h": 77.5,
+      "earth_delay_min": 21.87
     },
-    "vitals_history": [
-      {
-        "time": "08:00",
-        "heart_rate_bpm": 74,
-        "blood_sugar_mg_dl": 95,
-        "cortisol_ug_dl": 14.2
-      },
-      {
-        "time": "10:00",
-        "heart_rate_bpm": 81,
-        "blood_sugar_mg_dl": 83,
-        "cortisol_ug_dl": 15.2
-      },
-      {
-        "time": "12:00",
-        "heart_rate_bpm": 88,
-        "blood_sugar_mg_dl": 74,
-        "cortisol_ug_dl": 16.5
-      },
-      {
-        "time": "14:00",
-        "heart_rate_bpm": 93,
-        "blood_sugar_mg_dl": 67,
-        "cortisol_ug_dl": 16.3
-      },
-      {
-        "time": "16:00",
-        "heart_rate_bpm": 98,
-        "blood_sugar_mg_dl": 62,
-        "cortisol_ug_dl": 17.8
-      }
-    ],
+    "metric_status": {
+      "heart_rate": "NOMINAL",
+      "blood_pressure": "NOMINAL",
+      "spo2": "NOMINAL",
+      "glucose": "NOMINAL",
+      "respiration": "NOMINAL",
+      "core_temp": "NOMINAL",
+      "hrv": "NOMINAL",
+      "cortisol": "NOMINAL",
+      "sleep_duration": "NOMINAL",
+      "sleep_efficiency": "NOMINAL",
+      "sleep_awakenings": "NOMINAL",
+      "body_mass": "NOMINAL",
+      "voice_stress": "NOMINAL",
+      "speech_rate": "NOMINAL",
+      "blink_rate": "NOMINAL",
+      "cabin_co2": "NOMINAL",
+      "cabin_o2": "NOMINAL",
+      "cabin_pressure": "NOMINAL",
+      "cabin_temp": "NOMINAL",
+      "cabin_humidity": "NOMINAL",
+      "noise": "NOMINAL",
+      "light": "NOMINAL",
+      "light_color": "NOMINAL",
+      "radiation_rate": "NOMINAL",
+      "radiation_total": "NOMINAL",
+      "earth_delay": "NOMINAL"
+    },
     "body_highlights": {
       "physical": [
         {
-          "zone": "metabolic",
-          "label": "Hypoglycemic Trend",
-          "severity": "ADVISORY",
-          "detail": "Blood sugar dropped from 95 to 62 mg/dL post-EVA prep."
+          "zone": "heart",
+          "label": "Resting heart rate 53 BPM",
+          "severity": "NOMINAL",
+          "detail": "Average while asleep over the last night.",
+          "metric": "heart_rate"
         },
         {
-          "zone": "heart",
-          "label": "Elevated Exertion HR",
-          "severity": "ADVISORY",
-          "detail": "98 BPM elevated during airlock calibration."
+          "zone": "lungs",
+          "label": "SpO₂ 97.7 %",
+          "severity": "NOMINAL",
+          "detail": "Average oxygen saturation over the last 24 hours.",
+          "metric": "spo2"
+        },
+        {
+          "zone": "metabolic",
+          "label": "Blood sugar 94 mg/dL",
+          "severity": "NOMINAL",
+          "detail": "Average over the last 24 hours.",
+          "metric": "glucose"
         }
       ],
       "mental": [
         {
           "zone": "brain",
-          "label": "Mild Cortisol Drift",
+          "label": "Sleep & stress drift",
           "severity": "ADVISORY",
-          "detail": "Cortisol at 17.8 ug/dL linked to skipped meal & task load."
+          "detail": "Voice stress peaked at 0.61 and awakenings at 7/night (days 136–146); 7-day voice stress now 0.33.",
+          "metric": "voice_stress"
+        },
+        {
+          "zone": "heart",
+          "label": "HRV dipped to 32 ms",
+          "severity": "ADVISORY",
+          "detail": "Daily average during the drift; 44 ms over the last 7 days.",
+          "metric": "hrv"
         }
       ]
     },
+    "events": [
+      {
+        "id": "evt-chen-00",
+        "code": "VENTILATION_BOOSTED",
+        "scope": "cabin",
+        "severity": "NOMINAL",
+        "label": "Ventilation boosted",
+        "detail": "Habitat increased air circulation to bring cabin CO₂ back down.",
+        "mission_day": 144,
+        "start": "2035-09-30T08:00:00Z",
+        "end": null,
+        "metrics": [
+          "cabin_co2"
+        ]
+      },
+      {
+        "id": "evt-chen-01",
+        "code": "PRE_SLEEP_LIGHT_ADVANCED",
+        "scope": "crew",
+        "severity": "NOMINAL",
+        "label": "Evening lighting moved earlier",
+        "detail": "Habitat switched this crew member's cabin to warm, dim light earlier in the evening to help them fall asleep.",
+        "mission_day": 143,
+        "start": "2035-09-29T19:00:00Z",
+        "end": null,
+        "metrics": [
+          "sleep_duration",
+          "sleep_awakenings",
+          "sleep_efficiency",
+          "light_color",
+          "light"
+        ]
+      },
+      {
+        "id": "evt-chen-02",
+        "code": "CO2_REMOVAL_DEGRADED",
+        "scope": "cabin",
+        "severity": "ADVISORY",
+        "label": "CO₂ removal system degrading",
+        "detail": "The CO₂ scrubber started losing efficiency; cabin CO₂ climbed over the following days.",
+        "mission_day": 138,
+        "start": "2035-09-24T00:00:00Z",
+        "end": null,
+        "metrics": [
+          "cabin_co2",
+          "respiration"
+        ]
+      },
+      {
+        "id": "evt-chen-03",
+        "code": "SLOW_DRIFT_SLEEP_STRESS",
+        "scope": "crew",
+        "severity": "ADVISORY",
+        "label": "Gradual sleep & stress drift",
+        "detail": "Over days 136–146 sleep fell to 5.31 h with up to 7 awakenings a night, daily HRV dropped to 32 ms and morning cortisol reached 21.9 nmol/L.",
+        "mission_day": 136,
+        "start": "2035-09-22T11:00:00Z",
+        "end": "2035-10-02T20:30:00Z",
+        "metrics": [
+          "sleep_awakenings",
+          "sleep_duration",
+          "sleep_efficiency",
+          "hrv",
+          "cortisol",
+          "voice_stress",
+          "speech_rate",
+          "blink_rate"
+        ]
+      }
+    ],
     "mental_reports": [
       {
-        "id": "rep-101",
-        "created_at": "Mission Day 115",
+        "id": "rep-102",
+        "created_at": "Mission Day 149",
         "session_mode": "DEEP_SUPPORT",
-        "headline": "Post-EVA Fatigue & Nutritional Timing Drift",
-        "summary": "Astronaut reported mild lightheadedness and reduced focus after delaying midday nutrition during EVA suit checks.",
-        "biometric_correlation": "Blood glucose dropped to 62 mg/dL alongside compensatory HR rise (98 BPM).",
+        "headline": "Recovery Check: Sleep Improving After the Lighting Change",
+        "summary": "Engineer says falling asleep is easier since the evening lighting moved earlier and feels less on edge during comms. Still tired in the late afternoon.",
+        "biometric_correlation": "Over the last 2 days: sleep 6.7 h, HRV 48 ms and voice stress 0.27, all moving back toward pre-drift levels.",
         "earth_status": "REVIEWED_BY_EARTH",
-        "earth_psychologist_directive": "Enforce mandatory pre-EVA carbohydrate intake and 20-minute post-shift decompression; follow up with BLUE tomorrow."
+        "earth_psychologist_directive": "Keep the earlier warm-light schedule for two more weeks and protect an 8-hour sleep window. Weekly BLUE check-ins; no other changes."
+      },
+      {
+        "id": "rep-101",
+        "created_at": "Mission Day 141",
+        "session_mode": "DEEP_SUPPORT",
+        "headline": "Fragmented Sleep & Rising Stress During Comms",
+        "summary": "Engineer described waking several times a night and feeling wired before sleep after long evening troubleshooting sessions. Says patience with routine tasks is running short.",
+        "biometric_correlation": "Since day 136: up to 4 awakenings a night, daily HRV down to 32 ms, voice stress up to 0.52 and morning cortisol up to 20.1 nmol/L.",
+        "earth_status": "REVIEWED_BY_EARTH",
+        "earth_psychologist_directive": "Move warm, dim cabin lighting 90 minutes before sleep, stop troubleshooting work after 20:00, and follow up with BLUE in 3 days."
       }
     ]
   },
@@ -171,83 +351,170 @@
     "id": "astro-lin",
     "name": "Spec. Maya Lin",
     "role": "Mission Specialist",
-    "mission_day": 118,
+    "mission_day": 150,
     "avatar_initials": "ML",
     "status_tag": "ADVISORY",
+    "status_summary": "Follow-up after an acute dizziness episode on day 148. Currently elevated: cortisol (saliva).",
+    "last_reading_at": "2035-10-06T23:45:00Z",
+    "last_activity": "Asleep",
     "current_vitals": {
-      "heart_rate_bpm": 82,
-      "blood_sugar_mg_dl": 86,
-      "systolic_bp": 122,
-      "diastolic_bp": 78,
-      "spo2_percent": 98.1,
-      "cortisol_ug_dl": 22.4
+      "heart_rate_bpm": 55.0,
+      "hr_webcam_bpm": 53.0,
+      "hrv_rmssd_ms": 60.4,
+      "systolic_bp": 109.0,
+      "diastolic_bp": 72.0,
+      "spo2_percent": 97.4,
+      "resp_rate_bpm": 11.0,
+      "core_temp_c": 36.56,
+      "blood_sugar_mg_dl": 95.0,
+      "voice_stress_index": 0.24,
+      "speech_rate_wpm": 141.0,
+      "blink_rate_per_min": 13.8,
+      "cortisol_nmol_l": 19.9,
+      "sleep_hours": 6.23,
+      "sleep_efficiency_pct": 89.8,
+      "sleep_awakenings": 1.0,
+      "body_mass_kg": 82.5,
+      "radiation_cum_msv": 273.75,
+      "cabin_co2_mmhg": 2.56,
+      "cabin_ppo2_kpa": 21.85,
+      "cabin_pressure_kpa": 101.11,
+      "cabin_temp_c": 23.02,
+      "cabin_humidity_pct": 48.8,
+      "noise_dba": 51.3,
+      "light_lux": 0.0,
+      "light_cct_k": 0.0,
+      "radiation_rate_usv_h": 77.5,
+      "earth_delay_min": 21.87
     },
-    "vitals_history": [
-      {
-        "time": "08:00",
-        "heart_rate_bpm": 72,
-        "blood_sugar_mg_dl": 88,
-        "cortisol_ug_dl": 15.1
-      },
-      {
-        "time": "11:00",
-        "heart_rate_bpm": 77,
-        "blood_sugar_mg_dl": 90,
-        "cortisol_ug_dl": 14.5
-      },
-      {
-        "time": "14:00",
-        "heart_rate_bpm": 76,
-        "blood_sugar_mg_dl": 90,
-        "cortisol_ug_dl": 13.2
-      },
-      {
-        "time": "17:00",
-        "heart_rate_bpm": 82,
-        "blood_sugar_mg_dl": 89,
-        "cortisol_ug_dl": 16.9
-      },
-      {
-        "time": "20:00",
-        "heart_rate_bpm": 80,
-        "blood_sugar_mg_dl": 86,
-        "cortisol_ug_dl": 20.6
-      },
-      {
-        "time": "22:00",
-        "heart_rate_bpm": 82,
-        "blood_sugar_mg_dl": 86,
-        "cortisol_ug_dl": 22.4
-      }
-    ],
+    "metric_status": {
+      "heart_rate": "NOMINAL",
+      "blood_pressure": "NOMINAL",
+      "spo2": "NOMINAL",
+      "glucose": "NOMINAL",
+      "respiration": "NOMINAL",
+      "core_temp": "NOMINAL",
+      "hrv": "NOMINAL",
+      "cortisol": "ADVISORY",
+      "sleep_duration": "NOMINAL",
+      "sleep_efficiency": "NOMINAL",
+      "sleep_awakenings": "NOMINAL",
+      "body_mass": "NOMINAL",
+      "voice_stress": "NOMINAL",
+      "speech_rate": "NOMINAL",
+      "blink_rate": "NOMINAL",
+      "cabin_co2": "NOMINAL",
+      "cabin_o2": "NOMINAL",
+      "cabin_pressure": "NOMINAL",
+      "cabin_temp": "NOMINAL",
+      "cabin_humidity": "NOMINAL",
+      "noise": "NOMINAL",
+      "light": "NOMINAL",
+      "light_color": "NOMINAL",
+      "radiation_rate": "NOMINAL",
+      "radiation_total": "NOMINAL",
+      "earth_delay": "NOMINAL"
+    },
     "body_highlights": {
       "physical": [
         {
+          "zone": "lungs",
+          "label": "SpO₂ fell to 88.5 %",
+          "severity": "ADVISORY",
+          "detail": "During exercise on day 148; back to 97.4 % now.",
+          "metric": "spo2"
+        },
+        {
           "zone": "heart",
-          "label": "Evening HR Creep",
+          "label": "Heart rate peaked at 141 BPM",
+          "severity": "ADVISORY",
+          "detail": "Same episode; resting rate now 51 BPM.",
+          "metric": "heart_rate"
+        },
+        {
+          "zone": "metabolic",
+          "label": "Blood sugar 100 mg/dL",
           "severity": "NOMINAL",
-          "detail": "HR rising gently to 82 BPM late evening; within operational bounds."
+          "detail": "Average over the last 24 hours.",
+          "metric": "glucose"
         }
       ],
       "mental": [
         {
           "zone": "brain",
-          "label": "Elevated Evening Cortisol",
+          "label": "Stress spike during the episode",
           "severity": "ADVISORY",
-          "detail": "Cortisol at 22.4 ug/dL at 22:00 \u2014 inverted circadian curve over 3 sleep cycles."
+          "detail": "Voice stress reached 0.91 on day 148; 7-day average 0.23.",
+          "metric": "voice_stress"
+        },
+        {
+          "zone": "brain",
+          "label": "Morning cortisol 19.9 nmol/L",
+          "severity": "ADVISORY",
+          "detail": "Above the 19 nmol/L alert line in today's saliva sample.",
+          "metric": "cortisol"
         }
       ]
     },
+    "events": [
+      {
+        "id": "evt-lin-00",
+        "code": "ACUTE_DIZZINESS_BREATHLESSNESS",
+        "scope": "crew",
+        "severity": "URGENT",
+        "label": "Dizziness & breathlessness during exercise",
+        "detail": "Exercise stopped and 90 min of medical rest. SpO₂ fell to 88.5 %, heart rate peaked at 141 BPM, breathing at 30/min and systolic pressure dropped to 88 mmHg, then all recovered.",
+        "mission_day": 148,
+        "start": "2035-10-04T14:15:00Z",
+        "end": "2035-10-04T15:45:00Z",
+        "metrics": [
+          "spo2",
+          "heart_rate",
+          "respiration",
+          "blood_pressure",
+          "voice_stress"
+        ]
+      },
+      {
+        "id": "evt-lin-01",
+        "code": "VENTILATION_BOOSTED",
+        "scope": "cabin",
+        "severity": "NOMINAL",
+        "label": "Ventilation boosted",
+        "detail": "Habitat increased air circulation to bring cabin CO₂ back down.",
+        "mission_day": 144,
+        "start": "2035-09-30T08:00:00Z",
+        "end": null,
+        "metrics": [
+          "cabin_co2"
+        ]
+      },
+      {
+        "id": "evt-lin-02",
+        "code": "CO2_REMOVAL_DEGRADED",
+        "scope": "cabin",
+        "severity": "ADVISORY",
+        "label": "CO₂ removal system degrading",
+        "detail": "The CO₂ scrubber started losing efficiency; cabin CO₂ climbed over the following days.",
+        "mission_day": 138,
+        "start": "2035-09-24T00:00:00Z",
+        "end": null,
+        "metrics": [
+          "cabin_co2",
+          "respiration"
+        ]
+      }
+    ],
     "mental_reports": [
       {
         "id": "rep-201",
-        "created_at": "Mission Day 112",
+        "created_at": "Mission Day 148",
         "session_mode": "DEEP_SUPPORT",
-        "headline": "Early Signs of Isolation & Sleep Fragmentation",
-        "summary": "Specialist described waking twice per night and feeling disconnected from the crew rotation during the long lab cycle.",
-        "biometric_correlation": "Evening cortisol trending upward (18.9 ug/dL) with no matching physical exertion.",
-        "earth_status": "REVIEWED_BY_EARTH",
-        "earth_psychologist_directive": "Schedule two shared crew meals per day, a weekly private family call, and dim cabin lighting 60 minutes before sleep."
+        "headline": "Priority: Dizziness During Exercise & Worry About It Returning",
+        "summary": "Specialist described sudden dizziness and shortness of breath on the treadmill and is now anxious about the next exercise session. Reports pushing hard to keep up with the lab schedule.",
+        "biometric_correlation": "During the episode SpO₂ fell to 88.5 %, heart rate reached 141 BPM and voice stress 0.91; all readings recovered within the hour.",
+        "earth_status": "QUEUED_FOR_EARTH",
+        "earth_psychologist_directive": null
       }
     ]
   }
