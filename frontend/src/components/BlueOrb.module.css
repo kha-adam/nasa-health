@@ -1,0 +1,12 @@
+.orb { --orb-blue: #0284C7; --orb-ring: #BAE6FD; position: relative; display: inline-grid; place-items: center; width: 190px; height: 184px; flex-shrink: 0; }
+.circle { width: 104px; height: 104px; border-radius: 50%; background: var(--orb-blue); transform: scale(calc(1 + var(--audio-level, 0) * .2)); transition: transform 80ms linear; }
+.ring { position: absolute; width: 128px; height: 128px; border: 2px solid var(--orb-ring); border-radius: 50%; opacity: .5; transform: scale(calc(1 + var(--audio-level, 0) * .35)); transition: transform 80ms linear, opacity 160ms; }
+.orb[data-state="listening"] .ring, .orb[data-state="speaking"] .ring { opacity: 1; }
+.orb[data-state="thinking"] .ring { animation: thinking 1.5s ease-in-out infinite; }
+.small { width: 50px; height: 50px; }
+.small .circle { width: 32px; height: 32px; }
+.small .ring { width: 42px; height: 42px; }
+@keyframes thinking { 50% { transform: scale(1.08); opacity: .9; } }
+@media (max-width: 480px) { .orb:not(.small) { width: 160px; height: 155px; } }
+@media (max-height: 650px) { .orb:not(.small) { width: 112px; height: 108px; } .orb:not(.small) .circle { width: 68px; height: 68px; } .orb:not(.small) .ring { width: 88px; height: 88px; } }
+@media (prefers-reduced-motion: reduce) { .orb .circle, .orb .ring { animation: none; transition: none; transform: none; } }

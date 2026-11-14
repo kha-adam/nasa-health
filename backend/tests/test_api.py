@@ -224,3 +224,20 @@ def test_finish_generates_report_and_earth_reply():
     assert r.status_code == 200
     assert r.json()["earth_status"] == "REVIEWED_BY_EARTH" and r.json()["earth_psychologist_directive"]
     assert c.get("/api/astronauts/astro-lin").json()["mental_reports"][0]["earth_status"] == "REVIEWED_BY_EARTH"
+
+
+def test_answers_how_are_you_without_advancing_survey():
+    c = client_for("vance")
+    question = [{"role": "user", "content": "How are you doing today?"}]
+    response = chat(c, "astro-vance", question)
+    assert "thanks for asking" in response["reply"]
+    assert response["suggested_to_wrap_up"] is False
+    followup = question + [{"role": "assistant", "content": response["reply"]}, {"role": "user", "content": "My energy is good."}]
+    assert chat(c, "astro-vance", followup)["suggested_to_wrap_up"] is False
+
+
+def test_respects_not_ready_for_survey():
+    c = client_for("vance")
+    response = chat(c, "astro-vance", [{"role": "user", "content": "I'm not ready for the survey, I just want to chat."}])
+    assert "at your pace" in response["reply"]
+    assert response["suggested_to_wrap_up"] is False

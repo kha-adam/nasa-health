@@ -78,10 +78,10 @@ function Dashboard() {
   const summaryStyle = STATUS_STYLES[profile.status_tag];
 
   return (
-    <div className="flex h-screen min-h-[720px] flex-col gap-4 p-4">
+    <div className="flex min-h-screen flex-col gap-4 p-4 lg:h-screen lg:min-h-[720px]">
       <TopNavBar profile={profile} user={user} panel={panel} onPanelChange={setPanel} onLogout={logout} />
 
-      <main className="grid min-h-0 flex-1 grid-cols-[30fr_38fr_32fr] grid-rows-1 gap-4">
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,30fr)_minmax(0,38fr)_minmax(0,32fr)] lg:grid-rows-1">
         <VitalsPanel profile={profile} panel={panel} catalog={catalog} asSurgeon={asSurgeon} />
 
         <div className="flex min-h-0 flex-col gap-3">
@@ -94,7 +94,7 @@ function Dashboard() {
           <HumanBodyModel profile={profile} panel={panel} asSurgeon={asSurgeon} />
         </div>
 
-        <div className="flex min-h-0 flex-col pb-24">
+        <div className="flex min-h-0 flex-col pb-24 md:col-span-2 lg:col-span-1">
           {asSurgeon ? (
             <EventsPanel profile={profile} asSurgeon />
           ) : (

@@ -14,6 +14,9 @@ import type {
  * All calls go to same-origin /api/* — next.config.ts proxies them to FastAPI,
  * so the httpOnly session cookie stays first-party and is never readable by JS.
  */
+// Voice endpoints use the same authenticated, first-party proxy as other API calls.
+export const API_BASE = "";
+
 export class ApiError extends Error {
   constructor(
     public status: number,

@@ -1,0 +1,17 @@
+{
+  "name": "fish-blue",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup-agent.mjs",
+    "dev": "vite --host 127.0.0.1 --port 5180",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fishaudio/agent-client": "^1.0.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  }
+}

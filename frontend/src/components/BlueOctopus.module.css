@@ -1,0 +1,26 @@
+.character { width: 220px; height: 192px; overflow: visible; flex-shrink: 0; }
+.body { transform-origin: 160px 246px; animation: breathe 4s ease-in-out infinite; }
+.head { transform-origin: 160px 180px; transition: transform .35s; }
+.eyes { transform-origin: 160px 135px; animation: blink 5.2s infinite; }
+.leftTentacles { transform-origin: 113px 197px; animation: sway 3.2s ease-in-out infinite; }
+.rightTentacles { transform-origin: 207px 197px; animation: sway 3.2s ease-in-out infinite reverse; }
+.hand { opacity: 0; transform-origin: 236px 190px; }
+.mouth { transform-origin: 160px 177px; }
+.character[data-mood="listening"] .head { transform: rotate(-6deg); }
+.character[data-mood="listening"] .hand { opacity: 1; animation: wave 1.8s ease-in-out infinite; }
+.character[data-mood="speaking"] .mouth { transform: scaleY(calc(.5 + var(--voice,0) * 1.4)); transition: transform 65ms; }
+.character[data-mood="speaking"] .head { animation: nod 1.2s ease-in-out infinite; }
+.character[data-mood="laughing"] .body { animation: laugh .5s ease-in-out infinite; }
+.character[data-mood="thinking"] .head { transform: rotate(6deg); }
+.character[data-mood="sad"] .head, .character[data-mood="sleepy"] .head { transform: translateY(4px) rotate(-3deg); }
+.character[data-mood="sleepy"] .hand { opacity: 1; transform: translate(-64px,0) rotate(-12deg); }
+.thought { animation: breathe 1.5s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: translateY(-3px); } }
+@keyframes blink { 0%,43%,47%,100% { transform: scaleY(1); } 45% { transform: scaleY(.06); } }
+@keyframes sway { 50% { transform: rotate(5deg); } }
+@keyframes wave { 50% { transform: rotate(-7deg); } }
+@keyframes nod { 50% { transform: rotate(2deg); } }
+@keyframes laugh { 50% { transform: translateY(-4px) rotate(-2deg); } }
+@media(max-width:480px) { .character { width: 180px; height: 158px; } }
+@media(max-height:650px) { .character { width: 124px; height: 108px; } }
+@media(prefers-reduced-motion:reduce) { .character * { animation: none !important; transition: none !important; } }

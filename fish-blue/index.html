@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blue · Fish Audio voice agent</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <span class="brand">Blue</span>
+        <span class="pill">Click to talk</span>
+      </header>
+
+      <section class="stage">
+        <button id="orb" class="orb" aria-label="Talk to Blue">
+          <span class="halo" aria-hidden="true"></span>
+          <span class="core" aria-hidden="true"></span>
+        </button>
+        <p id="status" class="status" role="status">Loading…</p>
+        <p id="hint" class="hint">Tap the orb to talk to Blue</p>
+      </section>
+
+      <section id="transcript" class="transcript" aria-live="polite"></section>
+
+      <form id="form" class="composer">
+        <label for="text" class="sr-only">Message Blue</label>
+        <input id="text" placeholder="Type a message…" autocomplete="off" maxlength="500" />
+        <button type="submit" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9L2 9Z"/><path d="M22 2 11 13"/></svg></button>
+      </form>
+      <div class="controls">
+        <button id="mute" class="ghost" hidden>Mute</button>
+        <button id="end" class="danger" hidden>End</button>
+      </div>
+      <p class="foot">Voice by <a href="https://docs.fish.audio/agents/overview" target="_blank" rel="noreferrer">Fish Audio Agents</a></p>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
