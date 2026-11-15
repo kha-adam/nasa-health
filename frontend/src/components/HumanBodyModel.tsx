@@ -1,34 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Brain, ChevronRight, HeartPulse, Wind, Zap } from "lucide-react";
+import { useRef, useState } from "react";
+import { List, PersonStanding } from "lucide-react";
 import type { AstronautProfile, BodyHighlight, BodyZone, StatusTag } from "@/types/blue";
-import { STATUS_STYLES, metricHref, type PanelMode } from "@/lib/metrics";
-import StatusBadge from "./StatusBadge";
+import { STATUS_RANK, STATUS_STYLES } from "@/lib/metrics";
+import { StatusGlyph } from "./StatusBadge";
 
 interface Props {
   profile: AstronautProfile;
-  panel: PanelMode;
-  asSurgeon: boolean;
+  selected: BodyZone | null;
+  onSelect: (zone: BodyZone | null) => void;
 }
 
-const RANK: Record<StatusTag, number> = { NOMINAL: 0, ADVISORY: 1, URGENT: 2 };
-
-const VIEW_H = 440;
-
-const ZONES: Record<
+/** Physical zones, with a marker position, a depth (for the turntable) and a label side. */
+export const ZONES: Record<
   BodyZone,
-  { label: string; marker: [number, number]; side: "left" | "right"; icon: typeof Brain; panels: PanelMode[] }
+  { name: string; system: string; marker: [number, number]; depth: number; side: "left" | "right" }
 > = {
-  brain: { label: "Neuro / Stress", marker: [100, 36], side: "right", icon: Brain, panels: ["mental"] },
-  lungs: { label: "Respiratory", marker: [80, 136], side: "left", icon: Wind, panels: ["physical"] },
-  heart: { label: "Cardiovascular", marker: [106, 148], side: "right", icon: HeartPulse, panels: ["physical", "mental"] },
-  metabolic: { label: "Metabolic", marker: [100, 196], side: "left", icon: Zap, panels: ["physical"] },
+  brain: { name: "Head", system: "Neurological", marker: [100, 36], depth: 0, side: "right" },
+  lungs: { name: "Lungs", system: "Respiratory", marker: [80, 136], depth: -4, side: "left" },
+  heart: { name: "Heart", system: "Cardiovascular", marker: [106, 148], depth: 10, side: "right" },
+  metabolic: { name: "Metabolism", system: "Metabolic", marker: [100, 196], depth: 8, side: "left" },
 };
 
-// Vertical callout anchor (% of model height) per zone, chosen to avoid overlaps.
-const CALLOUT_TOP: Record<BodyZone, number> = { brain: 4, lungs: 24, heart: 32, metabolic: 44 };
+const PHYSICAL_ZONES: BodyZone[] = ["lungs", "heart", "metabolic"];
+const MAX_ANGLE = 30;
 
 const BODY_PATH =
   "M 90 72 C 90 82, 88 86, 80 89 C 66 93, 54 96, 49 108 C 44 122, 42 150, 38 178 C 35 200, 30 225, 28 248 " +
@@ -39,6 +35,12 @@ const BODY_PATH =
   "C 136 246, 131 232, 132 214 C 134 190, 136 160, 138 138 C 140 150, 143 165, 146 180 C 150 200, 155 222, 158 244 " +
   "C 159 252, 159 262, 164 264 C 170 266, 173 258, 172 248 C 170 225, 165 200, 162 178 C 158 150, 156 122, 151 108 " +
   "C 146 96, 134 93, 120 89 C 112 86, 110 82, 110 72 Z";
+
+// Faint anatomical landmarks: clavicles, sternum, ribs, costal margin, pelvis, knees.
+const LANDMARKS =
+  "M 72 97 Q 86 92 98 97 M 102 97 Q 114 92 128 97 M 100 99 L 100 168 " +
+  "M 76 118 Q 100 110 124 118 M 74 132 Q 100 124 126 132 M 74 146 Q 100 138 126 146 " +
+  "M 78 172 Q 100 188 122 172 M 72 252 Q 100 270 128 252 M 76 352 Q 82 356 88 352 M 112 352 Q 118 356 124 352";
 
 const ORGAN_PATHS: Record<BodyZone, string[]> = {
   brain: [
@@ -57,168 +59,300 @@ const ORGAN_PATHS: Record<BodyZone, string[]> = {
   ],
 };
 
-export default function HumanBodyModel({ profile, panel, asSurgeon }: Props) {
-  const [selected, setSelected] = useState<BodyZone | null>(null);
-  const highlights = profile.body_highlights[panel];
-  // Several findings can share a zone: keep them all, most severe first.
+/** Physical findings grouped by zone, most severe first. */
+export function groupByZone(highlights: BodyHighlight[]): Map<BodyZone, BodyHighlight[]> {
   const grouped = new Map<BodyZone, BodyHighlight[]>();
   for (const h of highlights) grouped.set(h.zone, [...(grouped.get(h.zone) ?? []), h]);
-  for (const list of grouped.values()) list.sort((a, b) => RANK[b.severity] - RANK[a.severity]);
-  const byZone = new Map<BodyZone, BodyHighlight>([...grouped].map(([z, list]) => [z, list[0]]));
-  const activeZones = (Object.keys(ZONES) as BodyZone[]).filter(
-    (z) => ZONES[z].panels.includes(panel) || byZone.has(z),
-  );
+  for (const list of grouped.values()) list.sort((a, b) => STATUS_RANK[b.severity] - STATUS_RANK[a.severity]);
+  return grouped;
+}
 
-  const severityOf = (zone: BodyZone): StatusTag | null => byZone.get(zone)?.severity ?? null;
+/**
+ * Centre column (physical panel): a matte anatomical silhouette on a limited turntable
+ * (±30°, drag, slider or arrow keys). Markers are discrete; only zones that need
+ * attention carry a label. Selecting a zone shows its observations in the right column.
+ * A list view gives the same information without the model.
+ */
+export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
+  const [view, setView] = useState<"model" | "list">("model");
+  const [angle, setAngle] = useState(0);
+  const [focused, setFocused] = useState<BodyZone | null>(null);
+  const drag = useRef<{ x: number; start: number; moved: boolean } | null>(null);
+
+  const grouped = groupByZone(profile.body_highlights.physical);
+  const zones = (Object.keys(ZONES) as BodyZone[]).filter((z) => PHYSICAL_ZONES.includes(z) || grouped.has(z));
+  const severityOf = (z: BodyZone): StatusTag => grouped.get(z)?.[0]?.severity ?? "NOMINAL";
+  const toggle = (z: BodyZone) => onSelect(selected === z ? null : z);
+
+  const rad = (angle * Math.PI) / 180;
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  const turn = (depth: number) => `translate(${100 + depth * s} 0) scale(${c} 1) translate(-100 0)`;
+  const markerX = (z: BodyZone) => 100 + (ZONES[z].marker[0] - 100) * c + ZONES[z].depth * s;
+  const highlightAt = 0.42 - (angle / MAX_ANGLE) * 0.2;
+  const clamp = (v: number) => Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, Math.round(v)));
 
   return (
-    <section className="card relative flex min-h-0 flex-col overflow-hidden p-4">
-      <h2 className="text-sm font-semibold text-ink">Body Systems Model</h2>
-
-      <div className="relative mt-2 min-h-0 flex-1">
-        {/* soft radial backdrop */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,#E0F2FE_0%,transparent_60%)]" />
-
-        <svg
-          viewBox={`0 0 200 ${VIEW_H}`}
-          className="relative mx-auto block h-full max-w-full"
-          role="img"
-          aria-label={`Anatomical model of ${profile.name}`}
-        >
-          <defs>
-            <linearGradient id="body-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E0F2FE" />
-              <stop offset="100%" stopColor="#FFFFFF" />
-            </linearGradient>
-            <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#DBEAFE" strokeWidth="0.4" />
-            </pattern>
-            <clipPath id="body-clip">
-              <path d={BODY_PATH} />
-              <ellipse cx="100" cy="42" rx="26" ry="31" />
-            </clipPath>
-          </defs>
-
-          <ellipse cx="100" cy="432" rx="52" ry="6" fill="#BAE6FD" opacity="0.45" />
-
-          {/* Layer 1: silhouette */}
-          <g>
-            <path d={BODY_PATH} fill="url(#body-fill)" stroke="#7DD3FC" strokeWidth="1.4" />
-            <ellipse cx="100" cy="42" rx="26" ry="31" fill="url(#body-fill)" stroke="#7DD3FC" strokeWidth="1.4" />
-            <rect width="200" height={VIEW_H} fill="url(#grid)" clipPath="url(#body-clip)" opacity="0.7" />
-            {/* spine & center line */}
-            <path d="M 100 76 L 100 270" stroke="#BAE6FD" strokeWidth="0.8" strokeDasharray="2 3" />
-          </g>
-
-          {/* Layer 2: organs */}
-          {(Object.keys(ORGAN_PATHS) as BodyZone[]).map((zone) => {
-            const sev = severityOf(zone);
-            const active = activeZones.includes(zone);
-            const color = sev ? STATUS_STYLES[sev].hex : "#38BDF8";
-            return (
-              <g
-                key={zone}
-                className="cursor-pointer transition-opacity duration-300"
-                opacity={active ? 1 : 0.28}
-                onClick={() => setSelected(selected === zone ? null : zone)}
-              >
-                {ORGAN_PATHS[zone].map((d, i) => (
-                  <path
-                    key={i}
-                    d={d}
-                    fill={color}
-                    fillOpacity={sev && sev !== "NOMINAL" ? 0.32 : 0.14}
-                    stroke={color}
-                    strokeWidth={selected === zone ? 1.8 : 1}
-                  />
-                ))}
-                {zone === "brain" && (
-                  <path
-                    d="M 100 23 C 97 32, 103 40, 99 51 M 88 32 C 92 35, 92 41, 87 45 M 112 32 C 108 35, 108 41, 113 45"
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="0.7"
-                    opacity="0.6"
-                  />
-                )}
-              </g>
-            );
-          })}
-
-          {/* Layer 3: markers */}
-          {activeZones.map((zone) => {
-            const [x, y] = ZONES[zone].marker;
-            const sev = severityOf(zone) ?? "NOMINAL";
-            const color = STATUS_STYLES[sev].hex;
-            const alert = sev !== "NOMINAL";
-            return (
-              <g
-                key={zone}
-                className="cursor-pointer"
-                onClick={() => setSelected(selected === zone ? null : zone)}
-                role="button"
-                aria-label={`${ZONES[zone].label} marker`}
-              >
-                {alert && <circle cx={x} cy={y} r="7" fill={color} opacity="0.5" className="marker-pulse" />}
-                <circle cx={x} cy={y} r="5" fill="#FFFFFF" stroke={color} strokeWidth="2" />
-                <circle cx={x} cy={y} r="2.2" fill={color} />
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Layer 4: callout cards — alerts always, nominal zones only when selected */}
-        {activeZones.map((zone) => {
-          const meta = ZONES[zone];
-          const list = grouped.get(zone) ?? [];
-          const h = list[0];
-          const Icon = meta.icon;
-          const isSelected = selected === zone;
-          const alert = h && h.severity !== "NOMINAL";
-          if (!alert && !isSelected) return null;
-          return (
-            <div
-              key={zone}
-              className={`absolute w-[38%] max-w-[230px] rounded-xl border bg-white/95 p-2.5 text-left shadow-card backdrop-blur transition ${
-                isSelected ? "z-10 border-sky ring-2 ring-tint-strong" : "border-line hover:border-tint-strong"
+    <section aria-labelledby="body-title" className="card flex min-h-0 flex-1 flex-col">
+      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+        <h2 id="body-title" className="text-sm font-semibold text-ink">
+          Body <span className="hidden font-normal text-ink-faint sm:inline">· physical observations</span>
+        </h2>
+        <div role="radiogroup" aria-label="Body view" className="flex rounded-[4px] border border-line p-0.5">
+          {(
+            [
+              ["model", "Model", PersonStanding],
+              ["list", "List", List],
+            ] as const
+          ).map(([key, label, Icon]) => (
+            <button
+              key={key}
+              role="radio"
+              aria-checked={view === key}
+              onClick={() => setView(key)}
+              className={`inline-flex items-center gap-1.5 rounded-[3px] px-2.5 py-1 text-xs font-medium transition ${
+                view === key ? "bg-tint text-ink" : "text-ink-faint hover:text-ink"
               }`}
-              style={{ top: `${CALLOUT_TOP[zone]}%`, [meta.side]: 0 }}
             >
-              <button className="block w-full text-left" onClick={() => setSelected(isSelected ? null : zone)}>
-                <div className="flex flex-wrap items-center justify-between gap-1">
-                  <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky">
-                    <Icon className="h-3 w-3" /> {meta.label}
-                  </span>
-                  {h && <StatusBadge status={h.severity} />}
-                </div>
-                <p className="mt-1 text-xs font-semibold leading-tight text-ink">
-                  {h?.label ?? "Within normal range"}
-                  {!isSelected && list.length > 1 && <span className="font-normal text-ink-soft"> +{list.length - 1}</span>}
-                </p>
-              </button>
-              {isSelected && (
-                <div className="mt-1 space-y-1.5">
-                  {(list.length ? list : [null]).map((item, i) => (
-                    <div key={i} className="text-[11px] leading-snug text-ink-soft">
-                      {i > 0 && item && <p className="font-semibold text-ink">{item.label}</p>}
-                      <p>{item?.detail ?? "No anomalies detected for this system."}</p>
-                      {item?.metric && (
-                        <Link
-                          href={metricHref(item.metric, profile.id, asSurgeon)}
-                          className="mt-0.5 inline-flex items-center gap-0.5 font-semibold text-sky hover:text-sky-hover"
-                        >
-                          View chart <ChevronRight className="h-3 w-3" />
-                        </Link>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+            </button>
+          ))}
+        </div>
+      </header>
 
+      {view === "list" ? (
+        <ul className="thin-scroll min-h-0 flex-1 divide-y divide-line overflow-y-auto">
+          {zones.map((z) => {
+            const list = grouped.get(z) ?? [];
+            const sev = severityOf(z);
+            return (
+              <li key={z}>
+                <button
+                  onClick={() => toggle(z)}
+                  aria-pressed={selected === z}
+                  className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-raised ${
+                    selected === z ? "bg-tint" : ""
+                  }`}
+                >
+                  <span className="mt-1.5">
+                    <StatusGlyph status={sev} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-medium text-ink">{ZONES[z].name}</span>
+                      <span className={`text-[11px] font-semibold uppercase tracking-wide ${STATUS_STYLES[sev].text}`}>
+                        {STATUS_STYLES[sev].label}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-ink-soft">
+                      {list.length ? list.map((h) => h.label).join(" · ") : "No observation"}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
+          <div
+            className="relative min-h-0 flex-1 touch-none select-none"
+            onPointerDown={(e) => {
+              drag.current = { x: e.clientX, start: angle, moved: false };
+            }}
+            onPointerMove={(e) => {
+              const d = drag.current;
+              if (!d || e.buttons !== 1) return;
+              const dx = e.clientX - d.x;
+              if (Math.abs(dx) > 3) d.moved = true;
+              if (d.moved) setAngle(clamp(d.start + dx * 0.25));
+            }}
+            onPointerUp={() => {
+              setTimeout(() => (drag.current = null), 0);
+            }}
+          >
+            <svg
+              viewBox="-80 4 360 444"
+              className="absolute inset-0 h-full w-full cursor-grab active:cursor-grabbing"
+              role="group"
+              aria-label={`Body model of ${profile.name}. ${zones.length} zones; select one to see its observations.`}
+            >
+              <defs>
+                <linearGradient id="body-shade" gradientUnits="userSpaceOnUse" x1="28" x2="172" y1="0" y2="0">
+                  <stop offset="0" stopColor="#0E1E35" />
+                  <stop offset={Math.max(0.1, Math.min(0.9, highlightAt))} stopColor="#22406A" />
+                  <stop offset="1" stopColor="#0C1A2E" />
+                </linearGradient>
+                <linearGradient id="body-fade" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0.7" stopColor="#0F1F36" stopOpacity="0" />
+                  <stop offset="1" stopColor="#0F1F36" stopOpacity="0.55" />
+                </linearGradient>
+              </defs>
+
+              {/* centre axis + level ticks: the instrument frame */}
+              <line x1="100" x2="100" y1="8" y2="444" stroke="#1E3556" strokeDasharray="1 4" />
+              {[60, 140, 220, 300, 380].map((y) => (
+                <g key={y} stroke="#1E3556">
+                  <line x1="-76" x2="-68" y1={y} y2={y} />
+                  <line x1="268" x2="276" y1={y} y2={y} />
+                </g>
+              ))}
+
+              <ellipse cx="100" cy="436" rx={46 * c + 8} ry="5" fill="#020814" opacity="0.6" />
+
+              {/* silhouette */}
+              <g transform={turn(0)}>
+                <path d={BODY_PATH} fill="url(#body-shade)" stroke="#3A5E8C" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                <ellipse cx="100" cy="42" rx="26" ry="31" fill="url(#body-shade)" stroke="#3A5E8C" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                <path d={LANDMARKS} fill="none" stroke="#3A5E8C" strokeWidth="0.7" opacity="0.55" vectorEffect="non-scaling-stroke" />
+                <path d={BODY_PATH} fill="url(#body-fade)" />
+              </g>
+
+              {/* organs */}
+              {zones.map((z) => {
+                const sev = severityOf(z);
+                const alert = sev !== "NOMINAL";
+                const color = alert ? STATUS_STYLES[sev].hex : "#7CC7F2";
+                return (
+                  <g key={z} transform={turn(ZONES[z].depth)} onClick={() => !drag.current?.moved && toggle(z)} className="cursor-pointer">
+                    {ORGAN_PATHS[z].map((d, i) => (
+                      <path
+                        key={i}
+                        d={d}
+                        fill={color}
+                        fillOpacity={alert ? 0.24 : selected === z ? 0.16 : 0.07}
+                        stroke={color}
+                        strokeOpacity={alert || selected === z ? 0.9 : 0.35}
+                        strokeWidth="1"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    ))}
+                  </g>
+                );
+              })}
+
+              {/* labels for zones that need attention (or the selected one) */}
+              {zones.map((z) => {
+                const sev = severityOf(z);
+                if (sev === "NOMINAL" && selected !== z) return null;
+                const meta = ZONES[z];
+                const x = markerX(z);
+                const y = meta.marker[1];
+                const left = meta.side === "left";
+                const edge = left ? -8 : 208;
+                const color = sev === "NOMINAL" ? "#7CC7F2" : STATUS_STYLES[sev].hex;
+                return (
+                  <g key={`label-${z}`} aria-hidden>
+                    <polyline
+                      points={`${x + (left ? -8 : 8)},${y} ${left ? 40 : 160},${y} ${edge + (left ? 4 : -4)},${y}`}
+                      fill="none"
+                      stroke={color}
+                      strokeOpacity="0.6"
+                      strokeWidth="0.8"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <text
+                      x={edge}
+                      y={y - 3}
+                      textAnchor={left ? "end" : "start"}
+                      className="fill-ink"
+                      style={{ font: "600 10px var(--font-mono)", letterSpacing: "0.06em" }}
+                    >
+                      {meta.name.toUpperCase()}
+                    </text>
+                    <text
+                      x={edge}
+                      y={y + 10}
+                      textAnchor={left ? "end" : "start"}
+                      fill={color}
+                      style={{ font: "500 9.5px var(--font-sans)" }}
+                    >
+                      {STATUS_STYLES[sev].label}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* markers */}
+              {zones.map((z) => {
+                const sev = severityOf(z);
+                const color = STATUS_STYLES[sev].hex;
+                const x = markerX(z);
+                const y = ZONES[z].marker[1];
+                const findings = grouped.get(z) ?? [];
+                return (
+                  <g
+                    key={`marker-${z}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selected === z}
+                    aria-label={`${ZONES[z].name}: ${STATUS_STYLES[sev].label}. ${
+                      findings.map((h) => h.label).join("; ") || "No observation"
+                    }`}
+                    className="cursor-pointer outline-none"
+                    onClick={() => !drag.current?.moved && toggle(z)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggle(z);
+                      }
+                    }}
+                    onFocus={() => setFocused(z)}
+                    onBlur={() => setFocused(null)}
+                  >
+                    <circle cx={x} cy={y} r="14" fill="transparent" />
+                    {sev !== "NOMINAL" && <circle cx={x} cy={y} r="8.5" fill="none" stroke={color} strokeOpacity="0.5" />}
+                    {(selected === z || focused === z) && (
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r="11.5"
+                        fill="none"
+                        stroke="#7CC7F2"
+                        strokeWidth="1.4"
+                        strokeDasharray={focused === z && selected !== z ? "2 2" : undefined}
+                      />
+                    )}
+                    <circle cx={x} cy={y} r="4.6" fill="#0A1628" stroke={color} strokeWidth="1.6" />
+                    <circle cx={x} cy={y} r="1.9" fill={color} />
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* limited rotation: a ruler from -30° to +30° */}
+          <div className="mx-auto flex w-full max-w-[340px] items-center gap-3 pt-1">
+            <span className="eyebrow w-14">Rotate</span>
+            <div className="relative flex-1">
+              <input
+                type="range"
+                min={-MAX_ANGLE}
+                max={MAX_ANGLE}
+                step={1}
+                value={angle}
+                onChange={(e) => setAngle(Number(e.target.value))}
+                aria-label="Rotate the body model"
+                aria-valuetext={`${angle} degrees`}
+                className="ruler w-full"
+              />
+              <div className="num pointer-events-none flex justify-between px-[3px] text-[9px] text-ink-faint" aria-hidden>
+                {[-30, -15, 0, 15, 30].map((d) => (
+                  <span key={d}>{d > 0 ? `+${d}` : d}</span>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => setAngle(0)}
+              disabled={angle === 0}
+              className="num w-12 rounded-[3px] border border-line py-0.5 text-[11px] text-ink-soft transition hover:bg-raised disabled:opacity-50"
+              aria-label="Reset rotation"
+            >
+              {angle > 0 ? `+${angle}` : angle}°
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

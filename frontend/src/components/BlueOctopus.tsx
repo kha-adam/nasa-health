@@ -29,7 +29,7 @@ export default function BlueOctopus({ mood = "idle", level = 0 }: { mood?: BlueM
       <radialGradient id={`${id}eyes`} cx="32%" cy="23%"><stop stopColor="white"/><stop offset=".12" stopColor="#929DA2"/><stop offset=".35" stopColor="#263238"/><stop offset="1" stopColor="#111B22"/></radialGradient>
       <linearGradient id={`${id}shine`} x2="0" y2="1"><stop stopColor="white" stopOpacity=".65"/><stop offset="1" stopColor="white" stopOpacity="0"/></linearGradient>
     </defs>
-    <ellipse cx="160" cy="259" rx="99" ry="10" fill="#BAE6FD" opacity=".55"/>
+    <ellipse cx="160" cy="259" rx="99" ry="10" fill="#020814" opacity=".55"/>
     <g className={styles.body}>
       <g className={styles.leftTentacles}>
         <path d="M104 183C64 162 25 187 29 207C35 231 77 216 109 199Z" fill="#C90068"/>
@@ -72,6 +72,6 @@ export default function BlueOctopus({ mood = "idle", level = 0 }: { mood?: BlueM
         <g className={styles.hand}><path d="M222 192C223 177 230 153 241 157L244 143Q248 134 253 145L256 136Q261 135 262 145L266 141Q273 143 269 157C282 171 263 202 245 210Z" fill={`url(#${id}body)`}/></g>
       </g>
     </g>
-    {mood === "thinking" && <g className={styles.thought} fill="#0284C7"><circle cx="264" cy="74" r="3"/><circle cx="277" cy="61" r="5"/><circle cx="287" cy="42" r="9" fill="#BAE6FD"/></g>}
+    {mood === "thinking" && <g className={styles.thought} fill="#7CC7F2"><circle cx="264" cy="74" r="3"/><circle cx="277" cy="61" r="5"/><circle cx="287" cy="42" r="9" fill="#BAE6FD"/></g>}
   </svg>;
 }

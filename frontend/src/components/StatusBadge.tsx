@@ -1,14 +1,40 @@
 import type { StatusTag } from "@/types/blue";
 import { STATUS_STYLES } from "@/lib/metrics";
 
-export default function StatusBadge({ status, className = "" }: { status: StatusTag; className?: string }) {
+/**
+ * Shape + colour + word, so status never relies on colour alone:
+ * Normal = circle, Watch = triangle, Urgent = diamond.
+ */
+export function StatusGlyph({ status, size = 8 }: { status: StatusTag; size?: number }) {
+  const fill = STATUS_STYLES[status].hex;
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" aria-hidden className="shrink-0">
+      {status === "NOMINAL" && <circle cx="5" cy="5" r="4" fill={fill} />}
+      {status === "ADVISORY" && <path d="M5 0.8 9.4 9H0.6Z" fill={fill} />}
+      {status === "URGENT" && <path d="M5 0.3 9.7 5 5 9.7 0.3 5Z" fill={fill} />}
+    </svg>
+  );
+}
+
+export default function StatusBadge({
+  status,
+  className = "",
+  quiet = false,
+}: {
+  status: StatusTag;
+  className?: string;
+  /** Text-only variant for dense lists. */
+  quiet?: boolean;
+}) {
   const s = STATUS_STYLES[status];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ring-1 ${s.bg} ${s.text} ${s.ring} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${s.text} ${
+        quiet ? "" : `rounded-[3px] px-1.5 py-0.5 ring-1 ring-inset ${s.bg} ${s.ring}`
+      } ${className}`}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.hex }} />
-      {status}
+      <StatusGlyph status={status} />
+      {s.label}
     </span>
   );
 }

@@ -5,6 +5,7 @@ import { FileText, Mic, MicOff, Send, Volume2, VolumeX, X, RotateCcw } from "luc
 import type { AgentSession as LiveSession, SessionToken } from "@fishaudio/agent-client";
 import type { AstronautId, ChatMessage, MentalHealthReport } from "@/types/blue";
 import { api, API_BASE } from "@/lib/api";
+import { OPEN_LOG_EVENT } from "@/lib/metrics";
 import { browserSpeech, recognitionConstructor, WakeListener, isWakePhrase } from "@/lib/browserSpeech";
 import { HandsFreeCapture } from "@/lib/handsFreeCapture";
 import BlueOctopus, { moodFromText, type BlueMood } from "./BlueOctopus";
@@ -300,7 +301,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     const detector = new WakeListener(browserSpeech, client.current,
       () => mounted.current && !opened.current && !transitioning.current && !document.hidden && !muted.current && permission.current === "granted",
       () => void activateRef.current(true), text => { if (mounted.current) setNotice(text); },
-      () => { wakeFallback.current = true; if (mounted.current) { setNotice("Using backup wake-word recognition. Say Hey Blue or click the dot."); resumeWakeRef.current(); } });
+      () => { wakeFallback.current = true; if (mounted.current) { setNotice("Using backup wake-word recognition. Say Hey Blue or press Talk to Blue."); resumeWakeRef.current(); } });
     wake.current = detector;
     let status: PermissionStatus | undefined;
     const changed = () => { permission.current = status?.state ?? null; if (permission.current === "granted") resumeWakeRef.current(); };
@@ -320,15 +321,20 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
       status?.removeEventListener("change", changed); document.removeEventListener("visibilitychange", visibility); void releaseSession();
     };
   }, [releaseSession]);
+  useEffect(() => {
+    const openFromNav = () => void activateRef.current();
+    window.addEventListener(OPEN_LOG_EVENT, openFromNav);
+    return () => window.removeEventListener(OPEN_LOG_EVENT, openFromNav);
+  }, []);
   useEffect(() => { scroll.current?.scrollTo({ top: scroll.current.scrollHeight }); }, [turns, phase]);
   useEffect(() => { if (!open && restoreFocus.current) { restoreFocus.current = false; fab.current?.focus(); } }, [open]);
 
   const characterMood: BlueMood = phase === "connecting" || phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : phase === "listening" && !micMuted ? "listening" : mood;
   const status = phase === "connecting" ? "Connecting with BLUE…" : phase === "thinking" ? "BLUE is thinking…" : phase === "speaking" ? "BLUE is speaking" : finished ? "Report queued for Earth" : micMuted ? "Microphone muted" : phase === "listening" ? "I’m listening. Just speak naturally." : "Ready when you are";
   return <>
-    <button ref={fab} className={styles.fab} aria-label="Talk to Blue" aria-haspopup="dialog" aria-controls="blue-conversation" aria-expanded={open} hidden={open} onClick={() => void activate()}><span className={styles.launcherDot} aria-hidden="true"/></button>
+    <button ref={fab} className={styles.fab} aria-label="Talk to Blue" aria-haspopup="dialog" aria-controls="blue-conversation" aria-expanded={open} hidden={open} onClick={() => void activate()}><span className={styles.launcherDot} aria-hidden="true"><Mic size={16}/></span><span className={styles.launcherText}><strong>Talk to Blue</strong><small>Log</small></span></button>
     <dialog ref={dialog} id="blue-conversation" className={styles.dialog} aria-labelledby="blue-title" onCancel={event => { event.preventDefault(); void close(); }}>
-      <header className={styles.header}><div><h2 id="blue-title">A little space with BLUE</h2><p>{astronautName} · Your check-in</p></div><div className={styles.actions}>
+      <header className={styles.header}><div><h2 id="blue-title">Log · BLUE</h2><p>{astronautName} · private check-in</p></div><div className={styles.actions}>
         <button className={styles.icon} aria-label={voiceOn ? "Mute Blue’s voice" : "Enable Blue’s voice"} aria-pressed={!voiceOn} onClick={() => { voice.current = !voice.current; setVoiceOn(voice.current); session.current?.setOutputVolume(voice.current ? 1 : 0); if (!voice.current) stopAudio(); else void session.current?.startAudio(); }}>{voiceOn ? <Volume2 size={18}/> : <VolumeX size={18}/>}</button>
         <button className={styles.icon} aria-label="Close Blue" onClick={() => void close()} autoFocus><X size={18}/></button></div></header>
       <div className={styles.stage}><BlueOctopus mood={characterMood} level={level}/><p className={styles.status} role="status"><span className={styles.dot} aria-hidden="true"/>{status}</p></div>

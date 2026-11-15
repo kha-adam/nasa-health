@@ -1,6 +1,6 @@
 # AGENTS.md — Engineering Guardrails & 5-Agent Parallel Spec
 
-> **PURPOSE:** This file is the single source of truth for all AI coding agents building **Project BLUE**. Every agent MUST read this file before generating code. Do not invent unapproved features, alter the light-blue/white visual theme, or touch files outside your assigned team directory.
+> **PURPOSE:** This file is the single source of truth for all AI coding agents building **Project BLUE**. Every agent MUST read this file before generating code. Do not invent unapproved features, alter the night-navy console theme (Section 1), or touch files outside your assigned team directory.
 
 ---
 
@@ -9,14 +9,14 @@
 * **Mission:** Build a reliable, demo-ready web application for the NASA Space Apps Challenge ("Astronaut Health Monitoring") where an astronaut **signs in** and sees only their own data, views a 3-column Physical/Mental dashboard with a central human body model, and uses a bottom-right round voice button to talk to **BLUE**—an adaptive AI psychologist that writes summary reports for Earth.
 * **Privacy first:** health data is personal. Every API route except `/api/health` and `/api/auth/login` requires a session; access rules are enforced server-side (Section 2B).
 * **Primary info first:** the dashboard shows only key readings with a status. Charts, ranges, statistics and full reports live one click away on detail pages.
-* **Strict Visual Theme (Light Blue & White ONLY):**
-  * **Background Canvas:** `#F4F9FF` (Soft Ice White-Blue)
-  * **Cards & Panels:** `#FFFFFF` with `1px solid #DBEAFE` border and soft shadow
-  * **Primary Accent (Medical Sky Blue):** `#0284C7` (hover `#0369A1`)
-  * **Secondary Accent (Soft Cyan/Blue Tint):** `#E0F2FE` / `#BAE6FD`
-  * **Primary Text:** `#0F172A` (Deep Slate) | **Secondary Text:** `#475569`
-  * **Status Colors:** Nominal `#0D9488` (Teal), Advisory `#D97706` (Amber), Urgent `#DC2626` (Clinical Red)
-  * **STRICTLY FORBIDDEN:** Dark mode, black sci-fi backgrounds, neon green/purple themes, or cyberpunk styling.
+* **Strict Visual Theme — "BLUE / Crew Health" night-navy console** (tokens in `frontend/src/app/globals.css`):
+  * **Canvas (bleu nuit):** `#0A1628` · **Rail & top bar:** `#060F1D` · **Panels:** `#0F1F36` with `1px solid #1E3556`, radius 4–6 px, almost no shadow · **Raised / hover:** `#152946`
+  * **Light-blue accent (links, focus, selection):** `#7CC7F2` (hover `#A8DBF7`) · **NASA blue** `#0B3D91` (brand mark, active toggles, avatars, BLUE button) · **NASA red** `#FC3D21` (Urgent only)
+  * **Text:** `#E6EEF8` primary · `#9AB0CB` secondary · `#7890AE` labels (all ≥ 4.5:1 on panels)
+  * **Status (medical):** Normal `#3CC8AE` (teal, circle) · Watch `#EDB04F` (amber, triangle) · Urgent `#FC3D21` (NASA red, diamond) — always shape + word, never colour alone
+  * **Charts:** series `#3E95DD` / `#D0699F` (2nd dashed), validated for colour-blind separation on `#0F1F36`
+  * **Type:** IBM Plex Sans for text, IBM Plex Mono (tabular) for measures, times and identifiers
+  * **STRICTLY FORBIDDEN:** purple/neon gradients, glows and halos, glassmorphism, star fields or sci-fi décor, big rounded corners, emojis, decorative illustrations without a function, light-mode toggles that break the palette.
 
 ---
 
@@ -60,19 +60,15 @@ API responses carry `Cache-Control: no-store`; cross-origin POSTs are rejected. 
 
 The main dashboard (`frontend/src/app/dashboard/page.tsx`) must fit cleanly on a `1440x900` or `1920x1080` screen and obey this exact layout:
 
-* **Entry:** `/` is the login screen. Astronauts land on `/dashboard` (their own); the flight surgeon lands on `/crew` (3-card overview) and opens `/dashboard?id=<astronaut>`.
-* **Top Header Bar:**
-  * Left: Astronaut Avatar, Name, Role, Mission Day, status (`"Switch Astronaut"` back to `/crew` for the flight surgeon only).
-  * Center: Segmented Toggle Switcher: **`[ Physical Panel | Mental Panel ]`**.
-  * Right: Earth Comms Latency Indicator (`Earth Link: 21m 52s Delay`, from the data) and `Log out`.
-* **Main 3-Column Body Grid:**
-  * **Left Column ($\approx 30\%$ width):** **Key readings only** — 5 rows (value, unit, Normal/Watch/Urgent) for the active panel. Physical: heart rate, blood pressure, SpO₂, blood sugar, cortisol. Mental: voice stress, sleep, HRV, cortisol, speech rate. Each row links to its detail page. **No charts on the dashboard.**
-  * **Center Column ($\approx 38\%$ width):** One-line status summary + **Interactive Human Body Model** (SVG, markers `brain`, `heart`, `lungs`, `metabolic`). Callouts appear only for alerts; details and a "View chart" link appear when a marker is selected.
-  * **Right Column ($\approx 32\%$ width):** Astronaut: **Mental Health Reports** as one-line headlines with Earth status (+ `"Simulate Earth Psychologist Reply"` on queued ones); the full report opens at `/dashboard/reports/<id>`. Flight surgeon: **Mission events** list instead (reports are private).
-* **Detail pages:** `/dashboard/metrics/<metric>` — metric picker grouped Body / Mind & behaviour / Cabin environment, range tabs (24 h · 7 days · 30 days · whole mission), chart with normal-range band, low–high band and numbered event markers, summary stats (avg/min/max/% in range), events in range, and a data table.
-* **Bottom-Right Floating Action Button (FAB):**
-  * Fixed at `bottom-6 right-6`, circular (`w-16 h-16 rounded-full`), sky-blue gradient (`#0284C7` to `#38BDF8`) with microphone icon and label `"Talk to Blue"`.
-  * Clicking opens the **BLUE Psychologist Voice Drawer/Modal** (supports microphone speech-to-text + spoken audio reply, plus a text input bar fallback for noisy hackathon rooms).
+* **Entry:** `/` is the login screen. Astronauts land on `/dashboard` (their own); the flight surgeon lands on `/crew` (roster) and opens `/dashboard?id=<astronaut>`.
+* **Shell (`AppShell`):** narrow navigation rail on the left (Overview, Crew [surgeon], Metrics, Reports + Log [astronaut]) and a compact mission bar on top: `BLUE / Crew Health`, mission and day, live UTC clock, sync state + last data time (offline state shown), `Earth link 21m 52s delay`, `Log out`.
+* **Profile strip:** avatar, name, status, role · id (`Switch astronaut` for the flight surgeon only), the **`[ Physical | Mental ]`** toggle, the trend period (24 h · 7 d · 30 d) and `Export report` (weekly / 30-day Markdown export built in the browser from data the account may see).
+* **Main 3-column grid (less detail on the home page — numbers, trend lines and statuses only):**
+  * **Left ($\approx 30\%$) — Trends:** 5 key readings for the active panel (out-of-range ones first): label, value, unit, status, and a bare trend line (no axes; dashed alert lines; gaps for missing samples). Physical: heart rate, blood pressure, SpO₂, blood sugar, cortisol. Mental: voice stress, sleep, HRV, cortisol, speech rate. Each row links to its detail page.
+  * **Centre ($\approx 38\%$):** one-line status summary, then — Physical panel — the **SVG body model** (matte silhouette, limited ±30° turntable by drag/slider/keys, discrete markers `heart`, `lungs`, `metabolic`, labels only for alerts, plus a **List** view); — Mental panel — **Mind & recovery** (observations over time + BLUE check-in counts). Mental health is never placed on the body.
+  * **Right ($\approx 32\%$):** the selected zone's observations (date, provenance: Sensor / Lab sample / Computed / Self-reported, linked event, "View chart") or, with nothing selected, **To review**; below, the astronaut's **Reports for Earth** (one-line headlines, Earth status, `"Simulate Earth Psychologist Reply"` on queued ones; full list at `/dashboard/reports`) or, for the flight surgeon, **Recent events** (reports are private).
+* **Detail pages:** `/dashboard/metrics/<metric>` — metric picker grouped Body / Mind & behaviour / Cabin environment, provenance + cadence, range tabs (24 h · 7 days · 30 days · whole mission · custom day range), chart with normal-range band, low–high band, numbered event markers and the astronaut's mission average, summary stats (avg/min/max/% in range + previous-period average), events in range, and a data table.
+* **BLUE button:** fixed bottom-right pill (NASA blue, light-blue mic disc) labelled `"Talk to Blue"` / `LOG`. It opens the BLUE log panel bottom-right (microphone speech-to-text + spoken reply + text input) with a light backdrop so the readings and the body stay visible. The rail's **Log** entry opens the same panel.
 
 ---
 
@@ -134,10 +130,12 @@ project-blue/
         │   └── dashboard/
         │       ├── page.tsx                     # 3-column dashboard (primary info)
         │       ├── metrics/[metric]/page.tsx    # Metric detail + charts
+        │       ├── reports/page.tsx             # All reports (astronaut)
         │       └── reports/[reportId]/page.tsx  # Full mental-health report
         └── components/
-            ├── TopNavBar.tsx  VitalsPanel.tsx  HumanBodyModel.tsx
-            ├── MentalReportsPanel.tsx  EventsPanel.tsx  MetricChart.tsx
+            ├── AppShell.tsx  TopNavBar.tsx  VitalsPanel.tsx  Sparkline.tsx
+            ├── HumanBodyModel.tsx  MindPanel.tsx  ObservationsPanel.tsx  SourceTag.tsx
+            ├── MentalReportsPanel.tsx  EventsPanel.tsx  MetricChart.tsx  ExportDialog.tsx
             └── VoicePsychologistFab.tsx  StatusBadge.tsx  ScreenStates.tsx
 ```
 
@@ -227,10 +225,10 @@ Both files must change together; Pydantic rejects unknown keys. Never rename key
 
 1. **Phase 0 (First 20 Minutes):** Person 5 initializes `main` with `PROJECT_SCOPE.md`, `AGENTS.md`, `backend/schemas.py`, `frontend/src/types/blue.ts`, and empty scaffold folders. Person 1 commits the initial `backend/data/astronauts.json` containing the 3 canonical profiles (`astro-vance`, `astro-chen`, `astro-lin`). All 5 teammates pull `main` and checkout their assigned branch.
 2. **Parallel Build (Hours 1–16):** Each teammate instructs their AI agent:
-   > *"Read `PROJECT_SCOPE.md`, `AGENTS.md`, and `schemas.py` / `types/blue.ts`. Only modify files listed under my branch in Section 7. Strictly use the 3 canonical astronaut profiles (`astro-vance`, `astro-chen`, `astro-lin`) and the light-blue and white palette (`#F4F9FF` / `#FFFFFF` / `#0284C7`)."*
+   > *"Read `PROJECT_SCOPE.md`, `AGENTS.md`, and `schemas.py` / `types/blue.ts`. Only modify files listed under my branch in Section 7. Strictly use the 3 canonical astronaut profiles (`astro-vance`, `astro-chen`, `astro-lin`) and the night-navy console palette (`#0A1628` / `#0F1F36` / `#7CC7F2` / NASA `#0B3D91`)."*
 3. **Serial Integration Checkpoints (Every 4 Hours):** Person 5 merges one branch at a time into `main`, verifies `npm run build` and `uvicorn main:app` pass cleanly, and notifies the team to pull `main`.
 4. **Agent Self-Check Before Finishing Any Turn:**
-   * Did I avoid dark-mode colors and strictly use the light-blue/white clinical theme?
+   * Did I stick to the night-navy console tokens in `globals.css` (no light theme, no purple/neon, no glows) and show status with shape + word?
    * Did I avoid adding `"Hey Blue"` wake-word listeners, heavy 3D libraries, or credentialed dataset downloads?
    * Did I align with the 3 canonical profiles (`astro-vance`, `astro-chen`, `astro-lin`) and match Section 8 JSON keys verbatim?
    * Does every new route go through `current_user` and the access rules in Section 2B? Does the flight surgeon still get no mental-health data?

@@ -19,7 +19,16 @@ import {
   Wind,
   type LucideIcon,
 } from "lucide-react";
-import type { CurrentVitals, HistoryRange, MetricDefinition, StatusTag, Thresholds } from "@/types/blue";
+import type {
+  AstronautProfile,
+  BodyHighlight,
+  CurrentVitals,
+  HistoryRange,
+  MetricDefinition,
+  MissionEvent,
+  StatusTag,
+  Thresholds,
+} from "@/types/blue";
 
 export type PanelMode = "physical" | "mental";
 
@@ -64,11 +73,67 @@ export const CATEGORY_LABELS: Record<MetricDefinition["category"], string> = {
   environment: "Cabin environment",
 };
 
-export const STATUS_STYLES: Record<StatusTag, { text: string; bg: string; ring: string; hex: string; label: string }> = {
-  NOMINAL: { text: "text-nominal", bg: "bg-teal-50", ring: "ring-teal-200", hex: "#0D9488", label: "Normal" },
-  ADVISORY: { text: "text-advisory", bg: "bg-amber-50", ring: "ring-amber-200", hex: "#D97706", label: "Watch" },
-  URGENT: { text: "text-urgent", bg: "bg-red-50", ring: "ring-red-200", hex: "#DC2626", label: "Urgent" },
+export const STATUS_STYLES: Record<
+  StatusTag,
+  { text: string; bg: string; ring: string; border: string; hex: string; label: string }
+> = {
+  NOMINAL: {
+    text: "text-nominal",
+    bg: "bg-nominal/10",
+    ring: "ring-nominal/30",
+    border: "border-nominal",
+    hex: "#3CC8AE",
+    label: "Normal",
+  },
+  ADVISORY: {
+    text: "text-advisory",
+    bg: "bg-advisory/10",
+    ring: "ring-advisory/35",
+    border: "border-advisory",
+    hex: "#EDB04F",
+    label: "Watch",
+  },
+  URGENT: {
+    text: "text-urgent",
+    bg: "bg-urgent/10",
+    ring: "ring-urgent/40",
+    border: "border-urgent",
+    hex: "#FC3D21",
+    label: "Urgent",
+  },
 };
+
+/** Where a value comes from: measured, sampled, computed, or told by the astronaut. */
+export type SourceKind = "sensor" | "sample" | "computed" | "declared";
+
+export const SOURCE_LABELS: Record<SourceKind, string> = {
+  sensor: "Sensor",
+  sample: "Lab sample",
+  computed: "Computed",
+  declared: "Self-reported",
+};
+
+const METRIC_SOURCES: Record<string, { kind: SourceKind; origin: string }> = {
+  heart_rate: { kind: "sensor", origin: "Chest strap" },
+  blood_pressure: { kind: "sensor", origin: "Pressure cuff" },
+  spo2: { kind: "sensor", origin: "Pulse oximeter" },
+  glucose: { kind: "sensor", origin: "Glucose monitor" },
+  respiration: { kind: "sensor", origin: "Chest strap" },
+  core_temp: { kind: "sensor", origin: "Ingestible / patch sensor" },
+  hrv: { kind: "computed", origin: "Heartbeat intervals" },
+  cortisol: { kind: "sample", origin: "Saliva, 06:30 daily" },
+  sleep_duration: { kind: "sensor", origin: "Sleep wearable" },
+  sleep_efficiency: { kind: "computed", origin: "Sleep wearable" },
+  sleep_awakenings: { kind: "sensor", origin: "Sleep wearable" },
+  body_mass: { kind: "sensor", origin: "Weekly mass measurement" },
+  voice_stress: { kind: "computed", origin: "Voice analysis during comms" },
+  speech_rate: { kind: "computed", origin: "Voice analysis during comms" },
+  blink_rate: { kind: "computed", origin: "Workstation camera" },
+};
+
+export function metricSource(key: string | null | undefined): { kind: SourceKind; origin: string } {
+  return (key && METRIC_SOURCES[key]) || { kind: "sensor", origin: "Habitat sensor" };
+}
 
 export function formatNumber(value: number | null | undefined, decimals = 0): string {
   if (value == null || Number.isNaN(value)) return "—";
@@ -130,7 +195,7 @@ export function outOfRange(metric: MetricDefinition, vitals: CurrentVitals): Out
   return null;
 }
 
-const STATUS_RANK: Record<StatusTag, number> = { NOMINAL: 0, ADVISORY: 1, URGENT: 2 };
+export const STATUS_RANK: Record<StatusTag, number> = { NOMINAL: 0, ADVISORY: 1, URGENT: 2 };
 
 /** Personal (non-cabin) metrics currently outside their normal band, most severe first. */
 export function alertMetrics(
@@ -148,4 +213,27 @@ export function dashboardHref(astronautId: string, asSurgeon: boolean): string {
 
 export function metricHref(metricKey: string, astronautId: string, asSurgeon: boolean): string {
   return `/dashboard/metrics/${metricKey}${asSurgeon ? `?id=${astronautId}` : ""}`;
+}
+
+/** Mission event linked to an observation's metric, if any (most severe first). */
+export function relatedEvent(
+  events: MissionEvent[],
+  metric: string | null,
+): MissionEvent | null {
+  if (!metric) return null;
+  const linked = events.filter((e) => e.metrics.includes(metric) && e.severity !== "NOMINAL");
+  linked.sort((a, b) => STATUS_RANK[b.severity] - STATUS_RANK[a.severity] || b.mission_day - a.mission_day);
+  return linked[0] ?? null;
+}
+
+/** When an observation was made: its linked event's start, else the latest reading. */
+export function observationTime(profile: AstronautProfile, h: BodyHighlight): string {
+  const e = h.severity !== "NOMINAL" ? relatedEvent(profile.events, h.metric) : null;
+  return e ? missionTime(e.start, e.mission_day) : `Latest · ${missionTime(profile.last_reading_at, profile.mission_day)}`;
+}
+
+/** Ask the BLUE log (VoicePsychologistFab) to open, from anywhere on the page. */
+export const OPEN_LOG_EVENT = "blue:open-log";
+export function openLog() {
+  window.dispatchEvent(new Event(OPEN_LOG_EVENT));
 }

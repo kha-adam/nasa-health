@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Lock, LogOut, Stethoscope } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import type { AstronautProfile, MetricDefinition } from "@/types/blue";
 import { api } from "@/lib/api";
-import { PRIMARY_METRICS, STATUS_STYLES, metricValue } from "@/lib/metrics";
+import { PRIMARY_METRICS, STATUS_RANK, STATUS_STYLES, metricValue } from "@/lib/metrics";
 import { useRequireUser } from "@/lib/session";
+import AppShell from "@/components/AppShell";
 import StatusBadge from "@/components/StatusBadge";
 import { ErrorScreen, FullScreenLoader } from "@/components/ScreenStates";
 
-/** Flight-surgeon home: the crew at a glance (physical data only). */
+/** Flight-surgeon home: the crew roster at a glance (physical data only). */
 export default function CrewPage() {
   const router = useRouter();
   const { user, error: sessionError, retry, logout } = useRequireUser();
@@ -37,74 +38,96 @@ export default function CrewPage() {
   if (!user || !crew || !catalog) return <FullScreenLoader />;
 
   const byKey = new Map(catalog.map((m) => [m.key, m]));
-  const keys = PRIMARY_METRICS.physical.slice(0, 4);
+  const metrics = PRIMARY_METRICS.physical
+    .slice(0, 4)
+    .map((k) => byKey.get(k))
+    .filter((m): m is MetricDefinition => !!m);
+  const ordered = [...crew].sort((a, b) => STATUS_RANK[b.status_tag] - STATUS_RANK[a.status_tag]);
+  const lead = crew[0];
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <header className="mb-8 flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky to-sky-light text-white shadow-card">
-          <Stethoscope className="h-6 w-6" />
-        </div>
-        <div className="flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky">Project BLUE</p>
-          <h1 className="text-2xl font-bold text-ink">Crew overview</h1>
-        </div>
-        <span className="text-sm text-ink-soft">{user.display_name}</span>
-        <button
-          onClick={logout}
-          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-tint-strong hover:bg-tint hover:text-sky"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Log out
-        </button>
-      </header>
+    <AppShell
+      user={user}
+      active="crew"
+      onLogout={logout}
+      mission={
+        lead
+          ? {
+              missionDay: lead.mission_day,
+              lastReadingAt: lead.last_reading_at,
+              earthDelayMin: lead.current_vitals.earth_delay_min,
+            }
+          : null
+      }
+    >
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
+        <p className="eyebrow">Flight surgeon</p>
+        <h1 className="mt-1 text-xl font-semibold text-ink">Crew overview</h1>
+        <p className="mt-1 text-[13.5px] text-ink-soft">
+          {crew.length} crew members · physical and cabin data. Crew needing attention are listed first.
+        </p>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {crew.map((a) => (
-          <Link
-            key={a.id}
-            href={`/dashboard?id=${a.id}`}
-            className="card group flex flex-col p-6 transition hover:-translate-y-1 hover:border-tint-strong hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky"
+        <section aria-label="Crew" className="card mt-5 overflow-hidden">
+          <div
+            className="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_repeat(4,minmax(0,0.6fr))_1.5rem] gap-4 border-b border-line px-5 py-2.5 lg:grid"
+            aria-hidden
           >
-            <div className="flex items-start justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-tint text-base font-bold text-sky">
-                {a.avatar_initials}
-              </div>
-              <StatusBadge status={a.status_tag} />
-            </div>
-            <h2 className="mt-4 text-lg font-semibold text-ink">{a.name}</h2>
-            <p className="text-sm text-ink-soft">{a.role}</p>
-            <p className="mt-3 min-h-[2.5rem] text-sm text-ink">{a.status_summary}</p>
+            <span className="eyebrow">Astronaut</span>
+            <span className="eyebrow">Status</span>
+            {metrics.map((m) => (
+              <span key={m.key} className="eyebrow truncate text-right">
+                {m.label.replace(" (SpO₂)", "")}
+              </span>
+            ))}
+            <span />
+          </div>
+          <ul className="divide-y divide-line">
+            {ordered.map((a) => (
+              <li key={a.id}>
+                <Link
+                  href={`/dashboard?id=${a.id}`}
+                  className="group grid grid-cols-1 gap-3 px-5 py-4 transition hover:bg-raised lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_repeat(4,minmax(0,0.6fr))_1.5rem] lg:items-center lg:gap-4"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="num flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] bg-nasa text-[13px] font-semibold text-white ring-1 ring-sky/30">
+                      {a.avatar_initials}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-ink">{a.name}</span>
+                      <span className="block truncate text-xs text-ink-faint">{a.role}</span>
+                    </span>
+                  </span>
+                  <span className="min-w-0">
+                    <StatusBadge status={a.status_tag} />
+                    <span className="mt-1 block text-[13px] leading-snug text-ink-soft">{a.status_summary}</span>
+                  </span>
+                  {metrics.map((m) => {
+                    const s = a.metric_status[m.key] ?? "NOMINAL";
+                    return (
+                      <span key={m.key} className="flex items-baseline justify-between gap-2 lg:block lg:text-right">
+                        <span className="text-xs text-ink-faint lg:hidden">{m.label}</span>
+                        <span className={`num text-[15px] ${s === "NOMINAL" ? "text-ink" : STATUS_STYLES[s].text}`}>
+                          {metricValue(m, a.current_vitals)}
+                          <span className="ml-1 font-sans text-[10px] text-ink-faint">{m.unit}</span>
+                        </span>
+                      </span>
+                    );
+                  })}
+                  <ChevronRight
+                    className="hidden h-4 w-4 text-ink-faint transition group-hover:translate-x-0.5 group-hover:text-sky lg:block"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-            <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-canvas p-3 text-xs">
-              {keys.map((k) => {
-                const m = byKey.get(k);
-                if (!m) return null;
-                const s = STATUS_STYLES[a.metric_status[k] ?? "NOMINAL"];
-                return (
-                  <div key={k}>
-                    <dt className="flex items-center gap-1 text-ink-soft">
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.hex }} />
-                      {m.label}
-                    </dt>
-                    <dd className="mt-0.5 font-semibold text-ink">
-                      {metricValue(m, a.current_vitals)} {m.unit}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-
-            <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-sky group-hover:text-sky-hover">
-              Open dashboard <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-            </span>
-          </Link>
-        ))}
-      </div>
-
-      <p className="mt-8 flex items-center justify-center gap-1.5 text-xs text-ink-soft">
-        <Lock className="h-3.5 w-3.5" /> Medical view. Mental-health reports and BLUE conversations are not shared with
-        the flight surgeon.
-      </p>
-    </main>
+        <p className="mt-5 flex items-center gap-1.5 text-xs text-ink-faint">
+          <Lock className="h-3.5 w-3.5" aria-hidden /> Medical view. Mental-health reports and BLUE conversations are not
+          shared with the flight surgeon.
+        </p>
+      </main>
+    </AppShell>
   );
 }

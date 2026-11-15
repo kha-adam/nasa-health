@@ -1,27 +1,44 @@
 @import "tailwindcss";
 
-/* Project BLUE clinical light-blue & white palette (AGENTS.md §1). Light theme only. */
+/*
+ * BLUE / Crew Health — night-navy mission console (AGENTS.md §1).
+ * Night-blue canvas, light-blue accents, NASA blue (#0B3D91) and NASA red (#FC3D21),
+ * medical teal for "normal". Text contrast is ≥ 4.5:1 on every surface below.
+ */
 @theme {
-  --color-canvas: #f4f9ff;
-  --color-card: #ffffff;
-  --color-line: #dbeafe;
-  --color-sky: #0284c7;
-  --color-sky-hover: #0369a1;
-  --color-sky-light: #38bdf8;
-  --color-tint: #e0f2fe;
-  --color-tint-strong: #bae6fd;
-  --color-ink: #0f172a;
-  --color-ink-soft: #475569;
-  --color-nominal: #0d9488;
-  --color-advisory: #d97706;
-  --color-urgent: #dc2626;
+  --color-canvas: #0a1628; /* page background (bleu nuit) */
+  --color-rail: #060f1d; /* navigation rail + top bar */
+  --color-card: #0f1f36; /* panels */
+  --color-raised: #152946; /* hover, inputs, nested surfaces */
+  --color-line: #1e3556; /* hairline separators */
+  --color-line-strong: #2c4a73;
 
-  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(2 132 199 / 0.06);
+  --color-ink: #e6eef8; /* primary text */
+  --color-ink-soft: #9ab0cb; /* secondary text */
+  --color-ink-faint: #7890ae; /* tertiary labels */
+
+  --color-sky: #7cc7f2; /* light-blue accent: links, focus, selection */
+  --color-sky-hover: #a8dbf7;
+  --color-tint: #13304f; /* selected background */
+  --color-tint-strong: #1d4470;
+  --color-nasa: #0b3d91; /* NASA blue */
+  --color-nasa-red: #fc3d21; /* NASA red */
+
+  --color-nominal: #3cc8ae; /* medical teal */
+  --color-advisory: #edb04f; /* amber: to review */
+  --color-urgent: #fc3d21; /* reserved for alerts that justify it */
+
+  --shadow-card: 0 1px 0 rgb(0 0 0 / 0.25);
+  --shadow-pop: 0 12px 40px rgb(2 8 20 / 0.55);
+}
+
+@theme inline {
+  --font-sans: var(--font-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html,
@@ -30,24 +47,91 @@ body {
   color: var(--color-ink);
 }
 
+::selection {
+  background: var(--color-tint-strong);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-sky);
+  outline-offset: 2px;
+}
+
+/* Panels: thin border, small radius, almost no shadow. */
 .card {
   background: var(--color-card);
   border: 1px solid var(--color-line);
-  border-radius: 1rem;
+  border-radius: 6px;
   box-shadow: var(--shadow-card);
+}
+
+/* Instrument label: small caps style used for section headers and units. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+/* Measures, times and identifiers. */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 0;
 }
 
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-tint-strong) transparent;
+  scrollbar-color: var(--color-line-strong) transparent;
 }
 
-@keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 0.6; }
-  100% { transform: scale(1.9); opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
-.marker-pulse {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: pulse-ring 1.8s ease-out infinite;
+
+/* Rotation ruler (body model) */
+.ruler {
+  appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+.ruler::-webkit-slider-runnable-track {
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--color-line-strong) 0 1px, transparent 1px 100%) 0 0 / 8.33% 100%,
+    var(--color-line-strong);
+}
+.ruler::-moz-range-track {
+  height: 1px;
+  background: var(--color-line-strong);
+}
+.ruler::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border: 2px solid var(--color-sky);
+  border-radius: 2px;
+  background: var(--color-canvas);
+  transform: rotate(45deg);
+}
+.ruler::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-sky);
+  border-radius: 2px;
+  background: var(--color-canvas);
+  transform: rotate(45deg);
+}
+.ruler:focus-visible {
+  outline: none;
+}
+.ruler:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--color-tint-strong);
 }

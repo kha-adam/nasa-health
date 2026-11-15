@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Lock, Satellite, ShieldCheck } from "lucide-react";
+import { Loader2, Lock, ShieldCheck } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { homeFor } from "@/lib/session";
 
@@ -49,89 +49,102 @@ export default function LoginPage() {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sky">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex min-h-screen items-center justify-center text-sky" role="status">
+        <Loader2 className="h-6 w-6 animate-spin" aria-label="Checking session" />
       </div>
     );
   }
 
+  const field =
+    "mt-1.5 w-full rounded-[4px] border border-line bg-raised px-3 py-2.5 text-sm text-ink outline-none transition focus:border-sky focus:ring-2 focus:ring-sky/25";
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <header className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky to-sky-light text-white shadow-card">
-            <Satellite className="h-7 w-7" />
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky">Project BLUE</p>
-          <h1 className="mt-2 text-2xl font-bold text-ink">Sign in</h1>
-          <p className="mt-1 text-sm text-ink-soft">Crew health monitoring</p>
-        </header>
-
-        <form onSubmit={submit} className="card space-y-4 p-6" noValidate>
-          <label className="block">
-            <span className="text-xs font-medium text-ink-soft">Username</span>
-            <input
-              autoFocus
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink outline-none focus:border-sky focus:ring-2 focus:ring-tint"
-            />
-          </label>
-          <label className="block">
-            <span className="text-xs font-medium text-ink-soft">Password</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink outline-none focus:border-sky focus:ring-2 focus:ring-tint"
-            />
-          </label>
-
-          {error && (
-            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-urgent">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy || !username.trim() || !password}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-sky px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-hover disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-            Sign in
-          </button>
-        </form>
-
-        <p className="mt-4 flex items-start gap-2 px-1 text-xs leading-relaxed text-ink-soft">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-nominal" />
-          Your health data is private. Astronauts see only their own records. The flight surgeon sees physical data,
-          never your conversations with BLUE or mental-health reports.
+    <main className="flex min-h-screen flex-col">
+      <header className="flex h-12 items-center border-b border-line bg-rail px-5">
+        <p className="flex items-baseline gap-1.5 text-sm">
+          <span className="num font-semibold tracking-wide text-ink">BLUE</span>
+          <span className="text-ink-faint">/</span>
+          <span className="font-medium text-ink-soft">Crew Health</span>
         </p>
+        <p className="num ml-auto hidden text-[12px] text-ink-faint sm:block">Mission ASTRA · secure console</p>
+      </header>
 
-        {SHOW_DEMO_ACCOUNTS && (
-          <details className="mt-4 rounded-xl border border-dashed border-line px-4 py-3 text-xs text-ink-soft">
-            <summary className="cursor-pointer font-medium text-sky">Demo accounts</summary>
-            <ul className="mt-2 space-y-1">
-              {DEMO_ACCOUNTS.map(([u, p, role]) => (
-                <li key={u}>
-                  <button
-                    type="button"
-                    className="hover:text-sky"
-                    onClick={() => {
-                      setUsername(u);
-                      setPassword(p);
-                    }}
-                  >
-                    <code className="font-semibold text-ink">{u}</code> · {role}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm">
+          <div className="mb-6">
+            <div className="num mb-5 flex h-10 w-10 items-center justify-center rounded-[4px] bg-nasa text-base font-bold text-white ring-1 ring-sky/40">
+              B
+            </div>
+            <p className="eyebrow">Crew health monitoring</p>
+            <h1 className="mt-1 text-2xl font-semibold text-ink">Sign in</h1>
+          </div>
+
+          <form onSubmit={submit} className="card space-y-4 p-6" noValidate>
+            <label className="block">
+              <span className="text-xs font-medium text-ink-soft">Username</span>
+              <input
+                autoFocus
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`num ${field}`}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-ink-soft">Password</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={field}
+              />
+            </label>
+
+            {error && (
+              <p role="alert" className="rounded-[4px] bg-urgent/10 px-3 py-2 text-xs text-urgent">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy || !username.trim() || !password}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[4px] bg-sky px-4 py-2.5 text-sm font-semibold text-rail transition hover:bg-sky-hover disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Lock className="h-4 w-4" aria-hidden />}
+              Sign in
+            </button>
+          </form>
+
+          <p className="mt-4 flex items-start gap-2 px-1 text-xs leading-relaxed text-ink-faint">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-nominal" aria-hidden />
+            Your health data is private. Astronauts see only their own records. The flight surgeon sees physical data,
+            never your conversations with BLUE or mental-health reports.
+          </p>
+
+          {SHOW_DEMO_ACCOUNTS && (
+            <details className="mt-4 rounded-[4px] border border-dashed border-line-strong px-4 py-3 text-xs text-ink-soft">
+              <summary className="cursor-pointer font-medium text-sky">Demo accounts</summary>
+              <ul className="mt-2 space-y-1">
+                {DEMO_ACCOUNTS.map(([u, p, role]) => (
+                  <li key={u}>
+                    <button
+                      type="button"
+                      className="hover:text-sky"
+                      onClick={() => {
+                        setUsername(u);
+                        setPassword(p);
+                      }}
+                    >
+                      <code className="num font-semibold text-ink">{u}</code> · {role}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
       </div>
     </main>
   );

@@ -15,9 +15,11 @@ import {
 import type { MetricHistory, MissionEvent } from "@/types/blue";
 import { STATUS_STYLES, formatNumber } from "@/lib/metrics";
 
-// Validated pair (dataviz validator: all checks pass on white); 2nd series is also dashed.
-export const SERIES_COLORS = ["#0284C7", "#4338CA"];
-const NOMINAL_FILL = "#0D9488";
+// Validated pair on the dark chart surface #0F1F36 (dataviz validator: all checks pass);
+// the 2nd series is also dashed so identity never relies on colour alone.
+export const SERIES_COLORS = ["#3E95DD", "#D0699F"];
+const NOMINAL_FILL = "#3CC8AE";
+const BASELINE = "#9AB0CB";
 
 interface Row {
   label: string;
@@ -56,7 +58,16 @@ function eventIndex(e: MissionEvent, rows: Row[], resolution: MetricHistory["res
   return i;
 }
 
-export default function MetricChart({ history, height = 340 }: { history: MetricHistory; height?: number }) {
+export default function MetricChart({
+  history,
+  height = 340,
+  baseline = null,
+}: {
+  history: MetricHistory;
+  height?: number;
+  /** Personal reference: this astronaut's whole-mission average of the first series. */
+  baseline?: number | null;
+}) {
   const { metric, points, resolution } = history;
   const series = metric.series;
   const banded = points.some((p) => p.low);
@@ -78,6 +89,7 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
     for (const s of series) {
       for (const v of [p.values[s.field], p.low?.[s.field], p.high?.[s.field]]) if (v != null) all.push(v);
     }
+  if (baseline != null) all.push(baseline);
   const dmin = all.length ? Math.min(...all) : 0;
   const dmax = all.length ? Math.max(...all) : 1;
   const { domain, ticks, tickDecimals } = niceScale(dmin, dmax, metric.unit === "%" ? 100 : null);
@@ -95,19 +107,19 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
   return (
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={rows} margin={{ top: 18, right: 12, bottom: 4, left: 0 }}>
-          <CartesianGrid stroke="#E2E8F0" strokeDasharray="0" vertical={false} />
+        <ComposedChart data={rows} margin={{ top: 18, right: 28, bottom: 4, left: 0 }}>
+          <CartesianGrid stroke="#1E3556" strokeDasharray="0" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 11, fill: "#475569" }}
+            tick={{ fontSize: 11, fill: "#9AB0CB", fontFamily: "var(--font-mono)" }}
             tickLine={false}
-            axisLine={{ stroke: "#DBEAFE" }}
+            axisLine={{ stroke: "#2C4A73" }}
             minTickGap={28}
             interval="preserveStartEnd"
           />
           <YAxis
             domain={domain}
-            tick={{ fontSize: 11, fill: "#475569" }}
+            tick={{ fontSize: 11, fill: "#9AB0CB", fontFamily: "var(--font-mono)" }}
             tickLine={false}
             axisLine={false}
             width={48}
@@ -115,7 +127,7 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
             tickFormatter={(v: number) => formatNumber(v, tickDecimals)}
           />
           {showBand && (
-            <ReferenceArea y1={bandLo} y2={bandHi} fill={NOMINAL_FILL} fillOpacity={0.07} stroke="none" ifOverflow="hidden" />
+            <ReferenceArea y1={bandLo} y2={bandHi} fill={NOMINAL_FILL} fillOpacity={0.08} stroke="none" ifOverflow="hidden" />
           )}
           {markers.map(({ e, n, i }) => (
             <ReferenceLine
@@ -124,9 +136,18 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
               stroke={STATUS_STYLES[e.severity].hex}
               strokeDasharray="4 3"
               strokeWidth={1.5}
-              label={{ value: `${n}`, position: "top", fontSize: 11, fontWeight: 700, fill: "#0F172A" }}
+              label={{ value: `${n}`, position: "top", fontSize: 11, fontWeight: 600, fill: "#E6EEF8" }}
             />
           ))}
+          {baseline != null && (
+            <ReferenceLine
+              y={baseline}
+              stroke={BASELINE}
+              strokeDasharray="2 4"
+              strokeWidth={1}
+              ifOverflow="extendDomain"
+            />
+          )}
           {banded &&
             series.map((s, i) => (
               <Area
@@ -134,7 +155,7 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
                 dataKey={`b${i}`}
                 stroke="none"
                 fill={SERIES_COLORS[i]}
-                fillOpacity={0.12}
+                fillOpacity={0.16}
                 isAnimationActive={false}
                 connectNulls
                 activeDot={false}
@@ -149,19 +170,19 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
               strokeWidth={2}
               strokeDasharray={i === 1 ? "6 4" : undefined}
               dot={sparse || points.length <= 40 ? { r: 3, strokeWidth: 0, fill: SERIES_COLORS[i] } : false}
-              activeDot={{ r: 5, stroke: "#FFFFFF", strokeWidth: 2 }}
+              activeDot={{ r: 5, stroke: "#0F1F36", strokeWidth: 2 }}
               connectNulls={sparse}
               isAnimationActive={false}
             />
           ))}
           <Tooltip
-            cursor={{ stroke: "#94A3B8", strokeWidth: 1 }}
+            cursor={{ stroke: "#7890AE", strokeWidth: 1 }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const row = payload[0].payload as Row;
               return (
-                <div className="rounded-lg border border-line bg-white px-3 py-2 text-xs shadow-card">
-                  <p className="font-semibold text-ink">
+                <div className="rounded-[4px] border border-line-strong bg-rail px-3 py-2 text-xs shadow-[var(--shadow-pop)]">
+                  <p className="num font-medium text-ink">
                     {resolution === "daily" ? `Mission day ${row.day}` : `Day ${row.day} · ${row.t.slice(11, 16)} UTC`}
                   </p>
                   {row.activity && <p className="text-ink-soft">{row.activity}</p>}
@@ -171,7 +192,8 @@ export default function MetricChart({ history, height = 340 }: { history: Metric
                     return (
                       <p key={s.field} className="mt-1 flex items-center gap-1.5 text-ink">
                         <span className="h-0.5 w-3" style={{ backgroundColor: SERIES_COLORS[i] }} />
-                        {s.label}: <strong>{formatNumber(v, metric.decimals)}</strong> {metric.unit}
+                        {s.label}: <strong className="num font-medium">{v == null ? "no sample" : formatNumber(v, metric.decimals)}</strong>{" "}
+                        {v != null && metric.unit}
                         {band && (
                           <span className="text-ink-soft">
                             ({formatNumber(band[0], metric.decimals)}–{formatNumber(band[1], metric.decimals)})
