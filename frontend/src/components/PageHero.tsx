@@ -16,7 +16,7 @@ export default function PageHero({
 }) {
   return (
     <header className="glass-blue relative overflow-hidden rounded-[28px] px-6 py-6 text-white sm:px-8 sm:py-7">
-      <p className="inline-flex rounded-full border border-white/35 bg-white/15 px-3 py-1 text-[12px] font-medium text-white">
+      <p className="inline-flex rounded-full border border-[#528bc2] bg-[#2d659c] px-3 py-1 text-[12px] font-medium text-white">
         {eyebrow}
       </p>
       <h1 className="mt-3 max-w-2xl text-[28px] font-light leading-tight tracking-[-0.03em] sm:text-[34px]">{title}</h1>

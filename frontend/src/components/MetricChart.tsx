@@ -13,11 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import type { MetricHistory, MissionEvent } from "@/types/blue";
-import { STATUS_STYLES, formatNumber } from "@/lib/metrics";
+import { SERIES_COLORS, STATUS_STYLES, formatNumber } from "@/lib/metrics";
 
-// Validated pair on the white chart surface (dataviz validator, light mode: all checks pass);
-// the 2nd series is also dashed so identity never relies on colour alone.
-export const SERIES_COLORS = ["#245BCB", "#C0457E"];
 const NOMINAL_FILL = "#0E9F86";
 const BASELINE = "#5F6B71";
 const GRID = "#E6EDF3";

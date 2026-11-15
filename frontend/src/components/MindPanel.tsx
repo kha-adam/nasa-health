@@ -79,7 +79,7 @@ export default function MindPanel({ profile, catalog, asSurgeon, onOpenLog }: Pr
                   ["Awaiting Earth", String(queued)],
                 ] as const
               ).map(([label, value]) => (
-                <div key={label} className="rounded-[16px] border border-line bg-raised/70 px-3.5 py-3">
+                <div key={label} className="rounded-[16px] border border-line bg-raised px-3.5 py-3">
                   <dt className="eyebrow">{label}</dt>
                   <dd className="num mt-1 text-[22px] font-semibold tracking-[-0.02em] text-ink">{value}</dd>
                 </div>

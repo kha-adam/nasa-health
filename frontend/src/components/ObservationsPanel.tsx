@@ -6,6 +6,7 @@ import type { AstronautProfile, BodyHighlight, BodyZone, MetricDefinition } from
 import {
   STATUS_RANK,
   metricHref,
+  metricValue,
 } from "@/lib/metrics";
 import StatusBadge from "./StatusBadge";
 import { ZONES, groupByZone } from "./HumanBodyModel";
@@ -21,6 +22,13 @@ interface Props {
 function observationLabel(h: BodyHighlight, catalog: MetricDefinition[]): string {
   return catalog.find((m) => m.key === h.metric)?.label ?? `${ZONES[h.zone].name} observation`;
 }
+
+const ZONE_METRICS: Record<BodyZone, string[]> = {
+  heart: ["heart_rate", "blood_pressure"],
+  lungs: ["spo2", "respiration"],
+  metabolic: ["glucose", "body_mass"],
+  brain: [],
+};
 
 /** A brief finding with its status; the linked metric page holds the details. */
 export function Observation({
@@ -54,6 +62,7 @@ export function Observation({
 export default function ObservationsPanel({ profile, catalog, asSurgeon, selected, onSelect }: Props) {
   if (selected) {
     const list = groupByZone(profile.body_highlights.physical).get(selected) ?? [];
+    const readings = ZONE_METRICS[selected].flatMap(key => catalog.filter(metric => metric.key === key));
     return (
       <section aria-labelledby="obs-title" className="card flex min-h-0 flex-col">
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 pb-3 pt-4">
@@ -72,6 +81,18 @@ export default function ObservationsPanel({ profile, catalog, asSurgeon, selecte
           </button>
         </header>
         <div className="thin-scroll min-h-0 space-y-4 overflow-y-auto px-5 py-4">
+          {readings.length > 0 && (
+            <ul aria-label="Latest measurements for this zone" className="space-y-1">
+              {readings.map(metric => (
+                <li key={metric.key}>
+                  <Link href={metricHref(metric.key, profile.id, asSurgeon)} className="flex flex-wrap items-center justify-between gap-x-2 rounded-xl bg-raised px-3 py-2 hover:bg-tint">
+                    <span className="text-xs text-ink-soft">{metric.label}</span>
+                    <strong className="num text-sm">{metricValue(metric, profile.current_vitals)} {metric.unit}</strong>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
           {list.length ? (
             list.map((h, i) => <Observation key={i} profile={profile} h={h} catalog={catalog} asSurgeon={asSurgeon} />)
           ) : (

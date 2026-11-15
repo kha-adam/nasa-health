@@ -17,7 +17,7 @@ interface Props {
   mission: MissionClock | null;
   onLogout: () => void;
   minimal?: boolean;
-  /** Shown right after the product name (the overview puts the astronaut's prestige badges here). */
+  /** Shown right after the product name. */
   extra?: React.ReactNode;
 }
 
@@ -64,12 +64,12 @@ export default function TopNavBar({ user, mission, onLogout, minimal = false, ex
   const utc = useUtcClock();
 
   return (
-    <header className={`topbar flex shrink-0 items-center gap-x-4 rounded-[22px] px-4 text-white md:px-5 ${minimal ? `${extra ? "h-16" : "h-14"} justify-between` : "flex-wrap gap-y-2 py-2.5 xl:h-14 xl:flex-nowrap xl:py-0"}`}>
+    <header className={`topbar relative flex shrink-0 items-center gap-x-2 rounded-[22px] px-3 text-white sm:gap-x-4 sm:px-4 md:px-5 ${minimal ? `${extra ? "h-16" : "h-14"} justify-between` : "flex-wrap gap-y-2 py-2.5 xl:h-14 xl:flex-nowrap xl:py-0"}`}>
       <p className="order-1 flex items-center gap-2 whitespace-nowrap text-sm">
         <span className="flex items-baseline gap-1.5">
           <span className="font-display text-[15px] font-bold tracking-[0.02em]">BLUE</span>
-          <span className="text-white/60">/</span>
-          <span className="font-display font-medium text-white/90">Crew Health</span>
+          <span className={`text-white/60 ${minimal && extra ? "max-[460px]:hidden" : ""}`}>/</span>
+          <span className={`font-display font-medium text-white/90 ${minimal && extra ? "max-[460px]:hidden" : ""}`}>Crew Health</span>
         </span>
       </p>
 
@@ -113,11 +113,9 @@ export default function TopNavBar({ user, mission, onLogout, minimal = false, ex
 
       <div className="order-2 ml-auto flex items-center gap-3 xl:order-3">
         {!minimal && <span className="hidden text-[13px] text-white/90 sm:inline">{user.display_name}</span>}
-        <button onClick={onLogout} className="btn-cta h-9 py-0 pl-4 pr-1 text-xs">
-          Log out
-          <span className="cta-disc h-7 w-7">
-            <LogOut className="h-3.5 w-3.5" aria-hidden />
-          </span>
+        <button onClick={onLogout} aria-label="Log out" className="flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-lg border border-[#83afd2] px-1.5 text-[11px] font-medium text-white hover:bg-[#195a90] sm:px-2.5">
+          <span className="hidden sm:inline">Log out</span>
+          <LogOut className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
     </header>

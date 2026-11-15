@@ -246,7 +246,7 @@ class CheckinReward(FrozenModel):
     space_fact: str
     checkin_days: int  # distinct days with a check-in this mission week (today included)
     target_days: int
-    streak_days: int  # consecutive check-in days this week, ending today
+    streak_days: int  # consecutive mission days ending with today's check-in
     first_today: bool  # False when today's check-in was already counted
     challenge_completed: bool
     challenge_just_completed: bool  # this check-in completed the crew challenge
@@ -349,6 +349,7 @@ class Encouragement(FrozenModel):
 class CrewLifeBoard(FrozenModel):
     astronaut_id: AstronautId
     mission_day: int
+    streak_days: int
     week: int
     week_start_day: int
     week_end_day: int

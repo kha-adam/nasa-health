@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MetricHistory } from "@/types/blue";
-import { formatNumber } from "@/lib/metrics";
-import { SERIES_COLORS } from "./MetricChart";
+import { SERIES_COLORS, formatNumber } from "@/lib/metrics";
 
 interface Props {
   history: MetricHistory;
@@ -36,6 +35,8 @@ function edgeLabel(t: string, day: number, resolution: MetricHistory["resolution
 export default function Sparkline({ history, height = 40 }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const { metric, points, resolution } = history;
+  const first = points[0];
+  const lastPoint = points[points.length - 1];
   const series = metric.series[0];
   const values = points.map((p) => p.values[series.field] ?? null);
   const present = values.filter((v): v is number => v != null);
@@ -43,20 +44,20 @@ export default function Sparkline({ history, height = 40 }: Props) {
   const lo = present.length ? Math.min(...present) : 0;
   const hi = present.length ? Math.max(...present) : 1;
   const label = present.length
-    ? `${series.label}, ${points.length ? edgeLabel(points[0].t, points[0].mission_day, resolution) : ""} to now: lowest ${formatNumber(
+    ? `${series.label}, ${edgeLabel(first.t, first.mission_day, resolution)} to ${edgeLabel(lastPoint.t, lastPoint.mission_day, resolution)}: lowest ${formatNumber(
         lo,
         metric.decimals,
       )}, highest ${formatNumber(hi, metric.decimals)} ${metric.unit}`
     : "No trend data";
 
   let body: React.ReactNode = null;
-  if (width > 0 && present.length >= 2) {
+  if (width > 8 && present.length > 0) {
     // Sampled-once-a-day metrics are connected; missing continuous samples break the line.
     const connect = metric.cadence !== "continuous" && resolution !== "daily";
     const pad = (hi - lo || Math.abs(hi) * 0.1 || 1) * 0.18;
     const y0 = lo - pad;
     const y1 = hi + pad;
-    const x = (i: number) => 1 + (i / (values.length - 1)) * (width - 6);
+    const x = (i: number) => 4 + (i / Math.max(1, values.length - 1)) * (width - 8);
     const y = (v: number) => height - 2 - ((v - y0) / (y1 - y0)) * (height - 4);
 
     let d = "";
@@ -89,7 +90,7 @@ export default function Sparkline({ history, height = 40 }: Props) {
     );
   }
 
-  const first = points[0];
+
   return (
     <div role="img" aria-label={label} title={label}>
       <div ref={ref} style={{ height }} className="w-full">
@@ -100,10 +101,10 @@ export default function Sparkline({ history, height = 40 }: Props) {
             </svg>
           ))}
       </div>
-      {first && (
+      {first && lastPoint && (
         <div className="num mt-0.5 flex justify-between text-[10px] text-ink-faint" aria-hidden>
           <span>{edgeLabel(first.t, first.mission_day, resolution)}</span>
-          <span>now</span>
+          <span>{edgeLabel(lastPoint.t, lastPoint.mission_day, resolution)}</span>
         </div>
       )}
     </div>

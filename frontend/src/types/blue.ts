@@ -295,6 +295,7 @@ export interface Encouragement {
 export interface CrewLifeBoard {
   astronaut_id: AstronautId;
   mission_day: number;
+  streak_days: number;
   week: number;
   week_start_day: number;
   week_end_day: number;

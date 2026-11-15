@@ -153,7 +153,7 @@ export default function ExportDialog({ open, onClose, profile, catalog, asSurgeo
       ref={ref}
       onClose={onClose}
       aria-labelledby="export-title"
-      className="m-auto max-h-[calc(100dvh-32px)] w-[min(580px,calc(100vw-24px))] overflow-hidden rounded-[28px] border border-line bg-white p-0 text-ink shadow-[var(--shadow-pop)] backdrop:bg-[rgb(12_40_90/0.28)] backdrop:backdrop-blur-[2px]"
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(580px,calc(100vw-24px))] overflow-hidden rounded-[28px] border border-line bg-white p-0 text-ink shadow-[var(--shadow-pop)] backdrop:bg-[rgb(12_40_90/0.28)]"
     >
       <header className="relative flex items-start justify-between gap-3 overflow-hidden border-b border-line bg-[radial-gradient(100%_140%_at_100%_0%,#d9ecff_0%,#f4faff_45%,#ffffff_80%)] px-6 pb-4 pt-5">
         <div>

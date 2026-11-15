@@ -1,19 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Award, FileText, LayoutGrid, LineChart, MessageSquareText, Users, type LucideIcon } from "lucide-react";
+import { Award, FileText, LayoutGrid, LineChart, Users, type LucideIcon } from "lucide-react";
 import type { AstronautProfile, SessionUser } from "@/types/blue";
 import { dashboardHref, metricHref } from "@/lib/metrics";
 import TopNavBar, { type MissionClock } from "./TopNavBar";
 
-export type NavKey = "overview" | "crew" | "metrics" | "reports" | "crew-life" | "log";
+export type NavKey = "overview" | "crew" | "metrics" | "reports" | "crew-life";
 
 interface NavItem {
   key: NavKey;
   label: string;
   icon: LucideIcon;
-  href?: string;
-  onClick?: () => void;
+  href: string;
 }
 
 interface Props {
@@ -23,18 +22,16 @@ interface Props {
   mission?: MissionClock | null;
   active: NavKey;
   onLogout: () => void;
-  /** Opens the BLUE log in place (dashboard); other pages link to it. */
-  onOpenLog?: () => void;
-  /** Lock the page to the viewport on large screens (dashboard). */
+  /** Keep the overview shell within the viewport. */
   fit?: boolean;
   /** Keep the overview header focused on the brand and sign-out action. */
   minimalHeader?: boolean;
-  /** Extra content in the mission bar, after the product name (overview: prestige badges). */
+  /** Extra content in the mission bar, after the product name. */
   headerExtra?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function navItems(user: SessionUser, profile: AstronautProfile | null | undefined, onOpenLog?: () => void): NavItem[] {
+function navItems(user: SessionUser, profile: AstronautProfile | null | undefined): NavItem[] {
   const surgeon = user.role === "flight_surgeon";
   const id = profile?.id ?? user.astronaut_id;
   // The flight surgeon's overview is a crew member's dashboard; from the roster, "Crew" is home.
@@ -46,11 +43,6 @@ function navItems(user: SessionUser, profile: AstronautProfile | null | undefine
   if (!surgeon) {
     items.push({ key: "reports", label: "Reports", icon: FileText, href: "/dashboard/reports" });
     items.push({ key: "crew-life", label: "Crew life", icon: Award, href: "/dashboard/crew-life" });
-    items.push(
-      onOpenLog
-        ? { key: "log", label: "Log", icon: MessageSquareText, onClick: onOpenLog }
-        : { key: "log", label: "Log", icon: MessageSquareText, href: "/dashboard?log=1" },
-    );
   }
   return items;
 }
@@ -58,7 +50,7 @@ function navItems(user: SessionUser, profile: AstronautProfile | null | undefine
 function NavEntry({ item, active, compact }: { item: NavItem; active: boolean; compact?: boolean }) {
   const Icon = item.icon;
   const cls = compact
-    ? `flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition ${
+    ? `flex min-h-10 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 text-center text-[11px] font-medium transition ${
         active
           ? "glass-blue text-white"
           : "border border-line bg-white text-ink-soft hover:bg-raised hover:text-ink"
@@ -74,20 +66,16 @@ function NavEntry({ item, active, compact }: { item: NavItem; active: boolean; c
       {item.label}
     </>
   );
-  return item.href ? (
+  return (
     <Link href={item.href} aria-current={active ? "page" : undefined} className={cls}>
       {body}
     </Link>
-  ) : (
-    <button type="button" onClick={item.onClick} className={cls}>
-      {body}
-    </button>
   );
 }
 
 /** Navigation rail + mission bar around every signed-in page. */
-export default function AppShell({ user, profile, mission, active, onLogout, onOpenLog, fit, minimalHeader, headerExtra, children }: Props) {
-  const items = navItems(user, profile, onOpenLog);
+export default function AppShell({ user, profile, mission, active, onLogout, fit, minimalHeader, headerExtra, children }: Props) {
+  const items = navItems(user, profile);
   const clock: MissionClock | null = profile
     ? {
         missionDay: profile.mission_day,
@@ -97,10 +85,10 @@ export default function AppShell({ user, profile, mission, active, onLogout, onO
     : (mission ?? null);
 
   return (
-    <div className={`flex min-h-screen gap-3 p-3 ${fit ? "lg:h-screen lg:overflow-hidden" : ""}`}>
+    <div className={`flex gap-3 p-3 ${fit ? "h-dvh overflow-hidden" : "min-h-dvh"}`}>
       <nav
         aria-label="Main"
-        className="hidden w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[24px] border border-line bg-rail/90 px-2 pb-3 pt-3 shadow-[var(--shadow-card)] md:sticky md:top-3 md:flex md:h-[calc(100vh-24px)]"
+        className="hidden w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[24px] border border-line bg-rail px-2 pb-3 pt-3 shadow-[var(--shadow-card)] md:sticky md:top-3 md:flex md:h-[calc(100dvh-24px)]"
       >
         {items.map((item) => (
           <NavEntry key={item.key} item={item} active={item.key === active} />
@@ -109,12 +97,12 @@ export default function AppShell({ user, profile, mission, active, onLogout, onO
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <TopNavBar user={user} mission={clock} onLogout={onLogout} minimal={minimalHeader} extra={headerExtra} />
-        <nav aria-label="Main" className="thin-scroll -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 md:hidden">
+        <nav aria-label="Main" className="grid shrink-0 grid-flow-col auto-cols-fr gap-1.5 md:hidden">
           {items.map((item) => (
             <NavEntry key={item.key} item={item} active={item.key === active} compact />
           ))}
         </nav>
-        <div className={`flex min-h-0 flex-1 flex-col ${fit ? "lg:overflow-hidden" : ""}`}>{children}</div>
+        <div className={`flex min-h-0 flex-1 flex-col ${fit ? "overflow-hidden" : ""}`}>{children}</div>
       </div>
     </div>
   );

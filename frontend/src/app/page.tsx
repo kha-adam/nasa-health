@@ -22,8 +22,8 @@ const DEMO_ACCOUNTS = [
  * 1600×900 design stage and scaled as one block to fit the window (like a
  * slide), whatever the resolution or browser zoom: nothing is cut off and the
  * page never scrolls. The stage stretches to the window's own aspect ratio, so
- * the composition stays centred. Phones and portrait windows keep the normal
- * responsive layout.
+ * the composition stays centred. Portrait screens use a compact column and
+ * scale down only when that column exceeds the available space.
  */
 const DESIGN_W = 1600;
 const DESIGN_H = 900;
@@ -74,7 +74,7 @@ export default function LoginPage() {
   useLayoutEffect(() => {
     const env = envelope.current;
     const col = column.current;
-    if (checking || !landscape || !env || !col) {
+    if (checking || !env || !col) {
       setStage(null);
       return;
     }
@@ -83,8 +83,9 @@ export default function LoginPage() {
       const h = env.clientHeight;
       // The column's own height is unaffected by the transform; error messages or the
       // demo-accounts list can make it taller, and the scale follows.
-      const needed = Math.max(DESIGN_H, col.offsetHeight + STAGE_CHROME);
-      const scale = Math.min(w / DESIGN_W, h / needed, MAX_SCALE);
+      if (!w || !h) return;
+      const needed = landscape ? Math.max(DESIGN_H, col.offsetHeight + STAGE_CHROME) : col.offsetHeight + 24;
+      const scale = landscape ? Math.min(w / DESIGN_W, h / needed, MAX_SCALE) : Math.min(1, w / 320, h / needed);
       setStage({ scale, width: w / scale, height: h / scale });
     };
     measure();
@@ -115,7 +116,7 @@ export default function LoginPage() {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sky" role="status">
+      <div className="flex h-dvh items-center justify-center text-sky" role="status">
         <Loader2 className="h-6 w-6 animate-spin" aria-label="Checking session" />
       </div>
     );
@@ -124,28 +125,27 @@ export default function LoginPage() {
   const field = "field mt-1.5 h-12 px-4 text-[15px]";
 
   return (
-    // The blue wave fills the page; the panel above it is liquid glass (globals.css).
-    <main className={`login-backdrop ${landscape ? "h-dvh overflow-hidden p-5" : "flex min-h-screen flex-col p-3 sm:p-5"}`}>
+    <main className="login-backdrop h-dvh overflow-hidden p-2 sm:p-5">
       <div
         ref={envelope}
-        className={`liquid-glass ${landscape ? "h-full" : "flex flex-1 flex-col px-4 pb-8 pt-4 sm:px-8 sm:pb-12 sm:pt-6"}`}
+        className="login-surface h-full"
       >
 
         <div
-          className={landscape ? `absolute left-0 top-0 flex flex-col px-12 py-10 ${stage ? "" : "invisible"}` : "contents"}
+          className={`absolute left-0 top-0 flex flex-col ${landscape ? "px-12 py-10" : "px-3"} ${stage ? "" : "invisible"}`}
           style={
-            landscape && stage
+            stage
               ? { width: stage.width, height: stage.height, transform: `scale(${stage.scale})`, transformOrigin: "0 0" }
               : undefined
           }
         >
-          <div className="relative flex flex-1 flex-col items-center justify-center py-8 sm:py-10">
+          <div className={`relative flex flex-1 flex-col items-center justify-center ${landscape ? "py-8" : "py-2"}`}>
             <div ref={column} className="flex w-full flex-col items-center">
               <p
                 aria-hidden
                 data-blue-reveal="title"
                 className={`flex flex-wrap items-center justify-center gap-x-3 text-center font-display font-light leading-[1.05] tracking-[-0.03em] text-white [text-shadow:0_2px_14px_rgb(10_40_120/0.35)] ${
-                  landscape ? "mb-10 text-[76px]" : "mb-8 text-[40px] sm:mb-10 sm:text-[64px] lg:text-[76px]"
+                  landscape ? "mb-10 text-[76px]" : "mb-3 gap-x-2 text-[clamp(23px,5vw,40px)]"
                 }`}
               >
                 <span>BLUE</span>
@@ -156,13 +156,13 @@ export default function LoginPage() {
                   <span className="pointer-events-none absolute inset-x-[6%] -bottom-[6%] h-[42%] rounded-full bg-[radial-gradient(closest-side,rgb(2_20_60/0.38),rgb(2_20_60/0))]" />
                   {/* Start and end point of the login/logout films (BlueTransitionLayer). */}
                   <span className="relative inline-flex" data-blue-anchor="login-title">
-                    <BlueOctopus mood="idle" size={landscape ? 120 : 76} />
+                    <BlueOctopus mood="idle" size={landscape ? 120 : 55} />
                   </span>
                 </span>
                 <span>Crew Health</span>
               </p>
 
-              <div data-blue-reveal="form" className="w-full max-w-[420px] rounded-[28px] border border-white/60 bg-white p-6 shadow-[0_16px_36px_rgb(0_32_72/0.25)] sm:p-8">
+              <div data-blue-reveal="form" className={`w-full max-w-[420px] rounded-[24px] border border-line bg-white shadow-[var(--shadow-pop)] ${landscape ? "p-8" : "p-4"}`}>
                 <div className="mb-6">
                   <h1 className="text-[28px] font-normal leading-tight tracking-[-0.02em] text-ink">Sign in</h1>
                 </div>
@@ -214,7 +214,7 @@ export default function LoginPage() {
                 </p>
 
                 {SHOW_DEMO_ACCOUNTS && (
-                  <details className="mt-4 rounded-[16px] border border-dashed border-line-strong bg-raised/60 px-4 py-3 text-[13px] text-ink-soft">
+                  <details className="mt-4 rounded-[16px] border border-dashed border-line-strong bg-raised px-4 py-3 text-[13px] text-ink-soft">
                     <summary className="cursor-pointer font-semibold text-sky">Demo accounts</summary>
                     <ul className="mt-2 space-y-1">
                       {DEMO_ACCOUNTS.map(([u, p, role]) => (

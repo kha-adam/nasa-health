@@ -259,9 +259,11 @@ def _longest_run(days: list[int]) -> int:
     return best
 
 
-def _streak_ending(days: list[int], today: int) -> int:
-    present, n = set(days), 0
-    while today - n in present:
+def _current_streak(days: set[int], today: int) -> int:
+    # An astronaut still has the rest of today to keep yesterday's streak alive.
+    last = today if today in days else today - 1
+    n = 0
+    while last - n in days:
         n += 1
     return n
 
@@ -439,6 +441,7 @@ def board(aid: str) -> CrewLifeBoard:
         return CrewLifeBoard(
             astronaut_id=aid,
             mission_day=today,
+            streak_days=_current_streak(_checkins.get(aid, set()), today),
             week=week,
             week_start_day=start,
             week_end_day=end,
@@ -586,6 +589,7 @@ def record_checkin(profile: AstronautProfile) -> CheckinReward:
         days_set.add(today)
         now_done = _challenge_done(crew_ids, week, today)
         days = _checkin_days(aid, week, today)
+        streak = _current_streak(days_set, today)
         n = _rewards_given.get(aid, 0)
         _rewards_given[aid] = n + 1
         stars = _stars(crew_ids, today)
@@ -612,7 +616,7 @@ def record_checkin(profile: AstronautProfile) -> CheckinReward:
         space_fact=SPACE_FACTS[(FACT_OFFSET.get(aid, 0) + n) % len(SPACE_FACTS)],
         checkin_days=len(days),
         target_days=CHALLENGE_TARGET_DAYS,
-        streak_days=_streak_ending(days, today),
+        streak_days=streak,
         first_today=first_today,
         challenge_completed=now_done,
         challenge_just_completed=just_done,

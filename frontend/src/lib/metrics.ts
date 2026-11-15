@@ -30,6 +30,8 @@ import type {
   Thresholds,
 } from "@/types/blue";
 
+export const SERIES_COLORS = ["#245BCB", "#C0457E"];
+
 export type PanelMode = "physical" | "mental";
 
 /** The few readings the dashboard shows up front; everything else lives on detail pages. */

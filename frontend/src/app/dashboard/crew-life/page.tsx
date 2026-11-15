@@ -32,6 +32,8 @@ import {
 } from "@/lib/crewLife";
 import AppShell from "@/components/AppShell";
 import PageHero from "@/components/PageHero";
+import CheckInDays from "@/components/CheckInDays";
+import CheckInStreak from "@/components/CheckInStreak";
 import PrestigeBadge from "@/components/PrestigeBadge";
 import MissionStarMap from "@/components/MissionStarMap";
 import VoicePsychologistFab from "@/components/VoicePsychologistFab";
@@ -127,7 +129,7 @@ function CrewLife() {
   if (!profile || !board) return <FullScreenLoader label="Loading crew life…" />;
 
   return (
-    <AppShell user={user} profile={profile} active="crew-life" onLogout={logout} onOpenLog={openLog}>
+    <AppShell user={user} profile={profile} active="crew-life" onLogout={logout}>
       <main className="flex w-full flex-col gap-3 pb-28">
         <PageHero
           eyebrow={`Crew life · week ${board.week} · days ${board.week_start_day}–${board.week_end_day}`}
@@ -173,10 +175,6 @@ function CrewLife() {
 // Crew challenge
 // --------------------------------------------------------------------------
 
-function range(a: number, b: number): number[] {
-  return Array.from({ length: b - a + 1 }, (_, i) => a + i);
-}
-
 function ChallengeCard({ board, busy, act }: { board: CrewLifeBoard; busy: boolean; act: Act }) {
   const c = board.challenge;
   const today = board.mission_day;
@@ -204,34 +202,11 @@ function ChallengeCard({ board, busy, act }: { board: CrewLifeBoard; busy: boole
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="eyebrow">Your week</p>
-          <ol className="mt-2 flex gap-1.5" aria-label="Your check-in days this week">
-            {range(c.start_day, c.end_day).map((d) => {
-              const done = mine.has(d);
-              const future = d > today;
-              return (
-                <li key={d} className="flex flex-col items-center gap-1">
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border text-[11px] ${
-                      done
-                        ? "glass-blue border-transparent text-white"
-                        : future
-                          ? "border-dashed border-line-strong bg-white text-ink-faint"
-                          : "border-line-strong bg-raised text-ink-faint"
-                    } ${d === today ? "ring-2 ring-sky/30 ring-offset-1" : ""}`}
-                  >
-                    {done ? <Check className="h-4 w-4" aria-hidden /> : <span aria-hidden>–</span>}
-                    <span className="sr-only">
-                      Day {d}: {done ? "checked in" : future ? "to come" : "no check-in"}
-                    </span>
-                  </span>
-                  <span className={`num text-[10.5px] ${d === today ? "font-semibold text-sky" : "text-ink-faint"}`}>
-                    {d === today ? "Today" : `D${d}`}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="eyebrow">Your week</p>
+            <CheckInStreak days={board.streak_days} />
+          </div>
+          <CheckInDays board={board} />
           <p className="mt-2 text-[13px] text-ink-soft">
             <span className="num font-semibold text-ink">
               {c.your_days.length} of {c.target_days}
@@ -263,7 +238,7 @@ function ChallengeCard({ board, busy, act }: { board: CrewLifeBoard; busy: boole
         </div>
       </div>
 
-      {!checkedToday && !c.completed && (
+      {!checkedToday && (
         <button onClick={openLog} className="btn-cta mt-4 py-1.5 pl-5 pr-1.5 text-sm">
           Check in with BLUE today
           <span className="cta-disc">
@@ -628,7 +603,7 @@ function EncourageCard({ board, busy, act }: { board: CrewLifeBoard; busy: boole
         {board.encouragements_received.length ? (
           <ul className="thin-scroll mt-2 max-h-56 space-y-2 overflow-y-auto pr-1">
             {board.encouragements_received.map((e) => (
-              <li key={e.id} className="rounded-[14px] border border-line bg-raised/70 px-3 py-2">
+              <li key={e.id} className="rounded-[14px] border border-line bg-raised px-3 py-2">
                 <p className="text-[13.5px] leading-snug text-ink">“{e.message}”</p>
                 <p className="num mt-1 text-[11.5px] text-ink-faint">
                   {crewName(board.crew, e.from_id)} · D{e.mission_day}

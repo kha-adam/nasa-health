@@ -1,64 +1,86 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import type { AstronautProfile, MetricDefinition } from "@/types/blue";
-import { PRIMARY_METRICS, STATUS_STYLES, alertMetrics, metricHref, type PanelMode } from "@/lib/metrics";
-import StatusBadge from "./StatusBadge";
+import type { AstronautProfile, MetricDefinition, MetricHistory } from "@/types/blue";
+import { defaultRange, metricHref, metricValue } from "@/lib/metrics";
+import { api } from "@/lib/api";
+import Sparkline from "./Sparkline";
+
+const OVERVIEW_METRICS = ["heart_rate", "radiation_rate", "sleep_duration"];
 
 interface Props {
   profile: AstronautProfile;
-  panel: PanelMode;
   catalog: MetricDefinition[];
   asSurgeon: boolean;
 }
 
-/** A short status overview; values and trends belong to the metric detail pages. */
-export default function VitalsPanel({ profile, panel, catalog, asSurgeon }: Props) {
-  const byKey = new Map(catalog.map((m) => [m.key, m]));
-  const alerts = alertMetrics(catalog, profile.metric_status);
-  const alertKeys = new Set(alerts.map((m) => m.key));
-  const keys = PRIMARY_METRICS[panel];
-  const available = keys.map((key) => byKey.get(key)).filter((m): m is MetricDefinition => !!m);
-  const rows = [...alerts, ...available.filter((m) => !alertKeys.has(m.key))].slice(0, 3);
+function MetricPreview({ metric, profile, asSurgeon }: Omit<Props, "catalog"> & { metric: MetricDefinition }) {
+  const [history, setHistory] = useState<MetricHistory | null | undefined>();
+  const range = defaultRange(metric);
+  const key = metric.key;
+  const astronautId = profile.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    api.metricHistory(astronautId, key, range).then(
+      (result) => { if (!cancelled) setHistory(result); },
+      () => { if (!cancelled) setHistory(null); },
+    );
+    return () => { cancelled = true; };
+  }, [astronautId, key, range]);
+
+  const chart = history?.stats[0]?.last != null ? history : null;
 
   return (
-    <section aria-labelledby="readings-title" className="card flex min-h-0 flex-col">
-      <header className="px-5 pb-2 pt-4">
-        <h2 id="readings-title" className="text-[17px] font-medium text-ink">
-          {panel === "physical" ? "Health at a glance" : "Stress & recovery"}
-        </h2>
+    <li className="border-t border-line first:border-t-0">
+      <Link
+        href={metricHref(key, astronautId, asSurgeon)}
+        className="group block rounded-xl px-2 py-2 transition-colors hover:bg-raised focus-visible:bg-raised"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+          <h3 className="text-[13px] font-medium text-ink">{metric.label}</h3>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="num text-[13px] font-semibold text-ink">
+              {metricValue(metric, profile.current_vitals)} <span className="text-[10px] font-medium text-ink-soft">{metric.unit}</span>
+            </span>
+            <ChevronRight className="size-3.5 text-ink-faint transition-colors group-hover:text-sky" aria-hidden />
+          </div>
+        </div>
+        <div className="mt-1">
+          {chart ? (
+            <Sparkline history={chart} height={32} />
+          ) : (
+            <p className="flex h-[49px] items-center text-xs text-ink-soft" role="status">
+              {history === undefined ? "Loading trend…" : history === null ? "Trend unavailable" : "No readings in this period"}
+            </p>
+          )}
+        </div>
+      </Link>
+    </li>
+  );
+}
+
+/** The same history and default date range used by each metric's detail chart. */
+export default function VitalsPanel({ profile, catalog, asSurgeon }: Props) {
+  const rows = OVERVIEW_METRICS.flatMap((key) => catalog.find((metric) => metric.key === key) ?? []);
+
+  return (
+    <section aria-labelledby="readings-title" className="card">
+      <header className="px-5 pb-1 pt-4">
+        <h2 id="readings-title" className="text-[17px] font-medium text-ink">Health at a glance</h2>
       </header>
-
-      <ul className="flex flex-col gap-1.5 px-2.5 pb-2">
-        {rows.map((m) => {
-          const status = profile.metric_status[m.key] ?? "NOMINAL";
-          return (
-            <li key={m.key}>
-              <Link
-                href={metricHref(m.key, profile.id, asSurgeon)}
-                className={`group flex min-h-16 items-center justify-between gap-3 rounded-[18px] px-3.5 py-3 transition ${
-                  status === "NOMINAL"
-                    ? "hover:bg-raised"
-                    : `${STATUS_STYLES[status].bg} ring-1 ring-inset ${STATUS_STYLES[status].ring} hover:brightness-[0.98]`
-                }`}
-              >
-                <span className="min-w-0 truncate text-[14px] font-medium text-ink">{m.label}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <StatusBadge status={status} quiet />
-                  <ChevronRight className="h-4 w-4 text-ink-faint transition group-hover:translate-x-0.5 group-hover:text-sky" aria-hidden />
-                </span>
-              </Link>
-            </li>
-          );
-        })}
+      <ul className="px-3 pb-2">
+        {rows.map((metric) => (
+          <MetricPreview
+            key={profile.id + ":" + metric.key + ":" + defaultRange(metric)}
+            metric={metric}
+            profile={profile}
+            asSurgeon={asSurgeon}
+          />
+        ))}
       </ul>
-
-      <footer className="flex justify-end border-t border-line px-5 py-3">
-        <Link href={metricHref(rows[0]?.key ?? "heart_rate", profile.id, asSurgeon)} className="btn-soft px-3 py-1.5 text-xs">
-          Detailed measurements <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-        </Link>
-      </footer>
     </section>
   );
 }

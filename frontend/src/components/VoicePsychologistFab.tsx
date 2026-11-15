@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Award, FileText, Mic, MicOff, Send, Sparkles, Star, Volume2, VolumeX, X, RotateCcw } from "lucide-react";
+import { Award, FileText, Keyboard, Mic, MicOff, Send, Sparkles, Star, Volume2, VolumeX, X, RotateCcw } from "lucide-react";
 import type { AgentSession as LiveSession, SessionToken } from "@fishaudio/agent-client";
 import type { AstronautId, ChatMessage, CheckinReward, MentalHealthReport } from "@/types/blue";
 import { api, API_BASE } from "@/lib/api";
@@ -23,6 +23,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
+  const [typing, setTyping] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [mood, setMood] = useState<BlueMood>("happy");
   const [level, setLevel] = useState(0);
@@ -36,7 +37,8 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const sessionId = useRef(newSessionId());
   const dialog = useRef<HTMLDialogElement>(null);
   const fab = useRef<HTMLButtonElement>(null);
-  const scroll = useRef<HTMLDivElement>(null);
+  const character = useRef<HTMLDivElement>(null);
+  const subtitle = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const mounted = useRef(false);
   const opened = useRef(false);
@@ -254,24 +256,28 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     if (transitioning.current && !opened.current) return;
     reportActivity();
     transitioning.current = true; opened.current = false; generation.current++;
-    restoreFocus.current = true; setOpen(false); dialog.current?.close();
+    restoreFocus.current = true; setOpen(false); setTyping(false); dialog.current?.close();
     await releaseSession();
     if (!mounted.current) return;
     setPhase("idle"); setLevel(0); transitioning.current = false; resumeWakeRef.current();
   };
 
-  const activate = async (fromWake = false) => {
+  const activate = async () => {
     if (!mounted.current || opened.current || transitioning.current || document.hidden) return;
     transitioning.current = true; const token = ++generation.current;
     const released = await pauseWake();
     if (!mounted.current || document.hidden || token !== generation.current) { transitioning.current = false; return; }
-    if (fromWake && released && fab.current && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const b = fab.current.getBoundingClientRect();
-      const flight = fab.current.animate([{ transform: "translate(0,0)" }, { transform: `translate(${innerWidth / 2 - b.left - b.width / 2}px,${innerHeight / 2 - b.top - b.height / 2}px) scale(2)` }], { duration: 350, easing: "ease-out" });
-      await flight.finished.catch(() => {});
-    }
-    if (token !== generation.current || document.hidden) { transitioning.current = false; return; }
+    const origin = fab.current?.querySelector("svg")?.getBoundingClientRect();
     opened.current = true; setOpen(true); dialog.current?.showModal(); transitioning.current = false;
+    const target = character.current?.getBoundingClientRect();
+    if (origin && target?.width && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const x = origin.left + origin.width / 2 - target.left - target.width / 2;
+      const y = origin.top + origin.height / 2 - target.top - target.height / 2;
+      character.current?.animate(
+        [{ transform: `translate(${x}px, ${y}px) scale(${origin.width / target.width})` }, { transform: "none" }],
+        { duration: 440, easing: "cubic-bezier(.2,.75,.25,1)" },
+      );
+    }
     if (!released) { muted.current = true; setMicMuted(true); setNotice("The microphone hasn’t released. Text chat is still available."); }
     if (!muted.current && permission.current !== "granted") {
       try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); permission.current = "granted"; }
@@ -342,22 +348,36 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     window.addEventListener(OPEN_LOG_EVENT, openFromNav);
     return () => window.removeEventListener(OPEN_LOG_EVENT, openFromNav);
   }, []);
-  useEffect(() => { scroll.current?.scrollTo({ top: scroll.current.scrollHeight }); }, [turns, phase]);
+  const latest = turns.at(-1);
+  useEffect(() => {
+    if (subtitle.current) subtitle.current.scrollTop = subtitle.current.scrollHeight;
+  }, [latest]);
+  useEffect(() => { if (typing) input.current?.focus(); }, [typing]);
   useEffect(() => { if (!open && restoreFocus.current) { restoreFocus.current = false; fab.current?.focus(); } }, [open]);
 
   const characterMood: BlueMood = phase === "connecting" || phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : phase === "listening" && !micMuted ? "listening" : mood;
-  const status = phase === "connecting" ? "Connecting with BLUE…" : phase === "thinking" ? "BLUE is thinking…" : phase === "speaking" ? "BLUE is speaking" : finished ? "Report queued for Earth" : micMuted ? "Microphone muted" : phase === "listening" ? "I’m listening. Just speak naturally." : "Ready when you are";
+  const status = finished ? "Report queued for Earth" : phase === "connecting" ? "Connecting…" : phase === "thinking" ? "Thinking…" : phase === "speaking" ? "Bleu is speaking" : micMuted ? "Microphone muted" : phase === "listening" ? "Listening…" : "Ready";
   return <>
-    <button ref={fab} className={styles.fab} aria-label="Talk to Blue" aria-haspopup="dialog" aria-controls="blue-conversation" aria-expanded={open} hidden={open} onClick={() => void activate()}><span className={styles.launcherBlue} aria-hidden="true" data-blue-anchor="talk-to-blue"><BlueOctopus mood="idle" size={52}/></span><span className={styles.launcherText}><strong>Talk to Blue</strong><small>Log</small></span></button>
-    <dialog ref={dialog} id="blue-conversation" className={styles.dialog} aria-labelledby="blue-title" onCancel={event => { event.preventDefault(); void close(); }}>
-      <header className={styles.header}><div><h2 id="blue-title">Log · BLUE</h2><p>{astronautName} · private check-in</p></div><div className={styles.actions}>
-        <button className={styles.icon} aria-label={voiceOn ? "Mute Blue’s voice" : "Enable Blue’s voice"} aria-pressed={!voiceOn} onClick={() => { voice.current = !voice.current; setVoiceOn(voice.current); session.current?.setOutputVolume(voice.current ? 1 : 0); if (!voice.current) stopAudio(); else void session.current?.startAudio(); }}>{voiceOn ? <Volume2 size={18}/> : <VolumeX size={18}/>}</button>
-        <button className={styles.icon} aria-label="Close Blue" onClick={() => void close()} autoFocus><X size={18}/></button></div></header>
-      <div className={styles.stage}><BlueOctopus mood={characterMood} level={level}/><p className={styles.status} role="status"><span className={styles.dot} aria-hidden="true"/>{status}</p></div>
-      <div ref={scroll} className={styles.transcript} role="log" aria-label="Conversation with Blue" aria-live="polite">{turns.map(turn => <p key={turn.id} className={`${styles.message} ${turn.role === "user" ? styles.user : ""}`} style={{ opacity: turn.final ? 1 : .7 }}><span className={styles.speaker}>{turn.role === "user" ? "You" : "BLUE"}</span>{turn.content}</p>)}
+    <button type="button" ref={fab} className={styles.fab} aria-label="Talk to Blue" aria-haspopup="dialog" aria-controls="blue-conversation" aria-expanded={open} hidden={open} onClick={() => void activate()}>
+      <span aria-hidden="true" data-blue-anchor="talk-to-blue"><BlueOctopus mood="idle" size={64}/></span>
+    </button>
+    <dialog ref={dialog} id="blue-conversation" className={styles.dialog} aria-label={`Bleu check-in with ${astronautName}`} onCancel={event => { event.preventDefault(); void close(); }}>
+      <button type="button" className={`${styles.icon} ${styles.close}`} aria-label="Close Blue" onClick={() => void close()} autoFocus><X size={22}/></button>
+      <div data-blue-voice-character ref={character} className={styles.character} aria-hidden="true">
+        <BlueOctopus mood={characterMood} level={level}/>
+      </div>
+      <div className={styles.captions}>
+        <p role="status" className={styles.status}>{status}</p>
+        <div ref={subtitle} className={styles.subtitle} aria-live="off" tabIndex={latest?.content ? 0 : undefined} aria-label="Current subtitle">
+          {latest?.content && <p><span className="sr-only">{latest.role === "user" ? "You: " : "Bleu: "}</span>{latest.content}</p>}
+        </div>
+        <span className="sr-only" aria-live="polite">{latest?.final && latest.role === "assistant" ? latest.content : ""}</span>
+      </div>
+      <footer className={styles.footer}>
         {error && <p className={`${styles.notice} ${styles.error}`} role="alert">{error}</p>}
-        {finished && <p className={styles.notice}>Report filed. You’ll find it in Mental Health Reports.</p>}
-        {finished && reward && <section className={styles.reward} aria-labelledby="blue-reward-title">
+        {!error && notice && <p className={styles.notice} role="status">{notice}</p>}
+        {finished && reward && <details className={styles.reward}>
+          <summary>Check-in reward</summary>
           <p id="blue-reward-title" className={styles.rewardTitle}><Sparkles size={15} aria-hidden="true"/> Thank you</p>
           <p className={styles.rewardText}>{reward.thank_you}</p>
           <ol className={styles.rewardDays} aria-label={`${reward.checkin_days} of ${reward.target_days} check-in days this week`}>
@@ -366,15 +386,16 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
           {reward.challenge_just_completed && <p className={styles.rewardStar}><Star size={14} aria-hidden="true"/> New star on the mission map · {reward.stars} stars</p>}
           <p className={styles.fact}><span>Space fact</span>{reward.space_fact}</p>
           <Link className={styles.rewardLink} onClick={() => void close()} href={reward.challenge_just_completed ? "/dashboard/crew-life?star=new" : "/dashboard/crew-life"}><Award size={14} aria-hidden="true"/> Crew life: titles, challenge &amp; mission map</Link>
-        </section>}
-      </div>
-      <footer className={styles.footer}>
-        {notice && <p className={styles.notice} role="status">{notice}</p>}
+        </details>}
         {finished ? <button className={styles.report} onClick={() => { transcript.current = []; setTurns([]); done.current = false; setFinished(false); setReward(null); sessionId.current = newSessionId(); muted.current = false; setMicMuted(false); setNotice(""); setError(""); void connectRef.current(true); }}><RotateCcw size={16}/> Start a new session</button> : <>
-          <button className={`${styles.report} ${micMuted ? "" : styles.listening}`} disabled={phase === "connecting" || filing} aria-label={micMuted ? "Unmute microphone" : "Mute microphone"} aria-pressed={micMuted} onClick={() => void toggleMic()}>{micMuted ? <MicOff size={17}/> : <Mic size={17}/>} {micMuted ? "Unmute microphone" : "Mute microphone"}</button>
-          <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(draft.trim()); }}><textarea ref={input} className={styles.input} aria-label="Your message to Blue" placeholder="Speak freely, or type here…" rows={1} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft.trim()); } }}/><button className={`${styles.icon} ${styles.primary}`} aria-label="Send message" disabled={!draft.trim() || phase === "connecting" || phase === "thinking" || filing}><Send size={18}/></button></form>
+          {typing && <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(draft.trim()); }}><textarea ref={input} className={styles.input} aria-label="Your message to Blue" placeholder="Type a message…" rows={1} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(draft.trim()); } }}/><button type="submit" className={`${styles.icon} ${styles.primary}`} aria-label="Send message" disabled={!draft.trim() || phase === "connecting" || phase === "thinking" || filing}><Send size={18}/></button></form>}
+          <div className={styles.controls}>
+            <button type="button" className={styles.icon} disabled={phase === "connecting" || filing} aria-label={micMuted ? "Unmute microphone" : "Mute microphone"} aria-pressed={micMuted} onClick={() => void toggleMic()}>{micMuted ? <MicOff size={19}/> : <Mic size={19}/>}</button>
+            <button type="button" className={styles.icon} aria-label={voiceOn ? "Mute Blue’s voice" : "Enable Blue’s voice"} aria-pressed={!voiceOn} onClick={() => { voice.current = !voice.current; setVoiceOn(voice.current); session.current?.setOutputVolume(voice.current ? 1 : 0); if (!voice.current) stopAudio(); else void session.current?.startAudio(); }}>{voiceOn ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
+            <button type="button" className={styles.icon} aria-label="Type a message" aria-expanded={typing} onClick={() => setTyping(value => !value)}><Keyboard size={19}/></button>
+          </div>
           {!session.current && engine.current === "live" && phase !== "connecting" && <button className={styles.report} onClick={() => void connectRef.current(false)}>Reconnect voice</button>}
-          <button className={styles.report} disabled={filing || phase === "connecting" || phase === "thinking" || !turns.some(t => t.role === "user" && t.final)} onClick={() => void finish()}><FileText size={15}/>{filing ? "Filing report…" : "End Session & Generate Earth Report"}</button>
+          {turns.some(t => t.role === "user" && t.final) && <button className={styles.report} disabled={filing || phase === "connecting" || phase === "thinking"} onClick={() => void finish()}><FileText size={15}/>{filing ? "Filing report…" : "End session & generate Earth report"}</button>}
         </>}
       </footer>
     </dialog>

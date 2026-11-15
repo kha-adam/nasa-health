@@ -5,6 +5,7 @@ import { List, PersonStanding } from "lucide-react";
 import type { AstronautProfile, BodyHighlight, BodyZone, StatusTag } from "@/types/blue";
 import { STATUS_RANK, STATUS_STYLES } from "@/lib/metrics";
 import { StatusGlyph } from "./StatusBadge";
+import BodyIllustration from "./BodyIllustration";
 
 interface Props {
   profile: AstronautProfile;
@@ -24,23 +25,7 @@ export const ZONES: Record<
 };
 
 const PHYSICAL_ZONES: BodyZone[] = ["lungs", "heart", "metabolic"];
-const MAX_ANGLE = 30;
-
-const BODY_PATH =
-  "M 90 72 C 90 82, 88 86, 80 89 C 66 93, 54 96, 49 108 C 44 122, 42 150, 38 178 C 35 200, 30 225, 28 248 " +
-  "C 27 258, 30 266, 36 264 C 41 262, 41 252, 42 244 C 45 222, 50 200, 54 180 C 57 165, 60 150, 62 138 " +
-  "C 64 160, 66 190, 68 214 C 69 232, 64 246, 64 262 C 64 300, 70 345, 74 380 C 76 398, 74 412, 72 422 " +
-  "C 70 430, 88 432, 90 424 C 90 400, 92 360, 94 330 C 96 305, 98 290, 100 282 C 102 290, 104 305, 106 330 " +
-  "C 108 360, 110 400, 110 424 C 112 432, 130 430, 128 422 C 126 412, 124 398, 126 380 C 130 345, 136 300, 136 262 " +
-  "C 136 246, 131 232, 132 214 C 134 190, 136 160, 138 138 C 140 150, 143 165, 146 180 C 150 200, 155 222, 158 244 " +
-  "C 159 252, 159 262, 164 264 C 170 266, 173 258, 172 248 C 170 225, 165 200, 162 178 C 158 150, 156 122, 151 108 " +
-  "C 146 96, 134 93, 120 89 C 112 86, 110 82, 110 72 Z";
-
-// Faint anatomical landmarks: clavicles, sternum, ribs, costal margin, pelvis, knees.
-const LANDMARKS =
-  "M 72 97 Q 86 92 98 97 M 102 97 Q 114 92 128 97 M 100 99 L 100 168 " +
-  "M 76 118 Q 100 110 124 118 M 74 132 Q 100 124 126 132 M 74 146 Q 100 138 126 146 " +
-  "M 78 172 Q 100 188 122 172 M 72 252 Q 100 270 128 252 M 76 352 Q 82 356 88 352 M 112 352 Q 118 356 124 352";
+const FULL_TURN = 360;
 
 const ORGAN_PATHS: Record<BodyZone, string[]> = {
   brain: [
@@ -68,8 +53,8 @@ export function groupByZone(highlights: BodyHighlight[]): Map<BodyZone, BodyHigh
 }
 
 /**
- * Centre column (physical panel): a matte anatomical silhouette on a limited turntable
- * (±30°, drag, slider or arrow keys). Markers are discrete; only zones that need
+ * Centre column (physical panel): a shaded SVG illustration with front, side and back
+ * views (drag, slider or arrow keys). Only zones that need
  * attention carry a label. Selecting a zone shows its observations in the right column.
  * A list view gives the same information without the model.
  */
@@ -77,7 +62,7 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
   const [view, setView] = useState<"model" | "list">("model");
   const [angle, setAngle] = useState(0);
   const [focused, setFocused] = useState<BodyZone | null>(null);
-  const drag = useRef<{ x: number; start: number; moved: boolean } | null>(null);
+  const drag = useRef<{ id: number; x: number; start: number; moved: boolean } | null>(null);
 
   const grouped = groupByZone(profile.body_highlights.physical);
   const zones = (Object.keys(ZONES) as BodyZone[]).filter((z) => PHYSICAL_ZONES.includes(z) || grouped.has(z));
@@ -87,16 +72,16 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
   const rad = (angle * Math.PI) / 180;
   const c = Math.cos(rad);
   const s = Math.sin(rad);
+  const facing = c < -0.32 ? "Back" : c > 0.32 ? "Front" : angle <= 180 ? "Right side" : "Left side";
   const turn = (depth: number) => `translate(${100 + depth * s} 0) scale(${c} 1) translate(-100 0)`;
   const markerX = (z: BodyZone) => 100 + (ZONES[z].marker[0] - 100) * c + ZONES[z].depth * s;
-  const highlightAt = 0.42 - (angle / MAX_ANGLE) * 0.2;
-  const clamp = (v: number) => Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, Math.round(v)));
+  const wrap = (degrees: number) => ((Math.round(degrees) % FULL_TURN) + FULL_TURN) % FULL_TURN;
 
   return (
     <section aria-labelledby="body-title" className="card flex min-h-0 flex-1 flex-col">
       <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
         <h2 id="body-title" className="min-w-0 text-[17px] font-medium text-ink">
-          Body <span className="hidden text-[15px] font-normal text-ink-faint sm:inline">· physical observations</span>
+          Body <span className="hidden text-[15px] font-normal text-ink-faint xl:inline">· physical observations</span>
         </h2>
         <div role="radiogroup" aria-label="Body view" className="seg">
           {(
@@ -153,18 +138,26 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
           <div
             className="relative min-h-0 flex-1 touch-none select-none bg-[radial-gradient(55%_48%_at_50%_46%,#e6f3ff_0%,rgb(255_255_255/0)_72%)]"
             onPointerDown={(e) => {
-              drag.current = { x: e.clientX, start: angle, moved: false };
+              if (!e.isPrimary || e.button !== 0) return;
+              drag.current = { id: e.pointerId, x: e.clientX, start: angle, moved: false };
             }}
             onPointerMove={(e) => {
               const d = drag.current;
-              if (!d || e.buttons !== 1) return;
+              if (!d || e.pointerId !== d.id || !e.buttons) return;
               const dx = e.clientX - d.x;
-              if (Math.abs(dx) > 3) d.moved = true;
-              if (d.moved) setAngle(clamp(d.start + dx * 0.25));
+              if (!d.moved && Math.abs(dx) > 4) {
+                d.moved = true;
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }
+              if (d.moved) setAngle(wrap(d.start + dx));
             }}
-            onPointerUp={() => {
-              setTimeout(() => (drag.current = null), 0);
+            onPointerUp={(e) => {
+              const active = drag.current;
+              if (active?.id === e.pointerId) {
+                setTimeout(() => { if (drag.current === active) drag.current = null; }, 0);
+              }
             }}
+            onPointerCancel={() => { drag.current = null; }}
           >
             <svg
               viewBox="-80 4 360 444"
@@ -172,20 +165,6 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
               role="group"
               aria-label={`Body model of ${profile.name}. ${zones.length} zones; select one to see its observations.`}
             >
-              <defs>
-                <linearGradient id="body-shade" gradientUnits="userSpaceOnUse" x1="28" x2="172" y1="0" y2="0">
-                  <stop offset="0" stopColor="#D5E4F1" />
-                  <stop offset={Math.max(0.1, Math.min(0.9, highlightAt))} stopColor="#FAFDFF" />
-                  <stop offset="1" stopColor="#CCDDEC" />
-                </linearGradient>
-                <linearGradient id="body-fade" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0.7" stopColor="#FFFFFF" stopOpacity="0" />
-                  <stop offset="1" stopColor="#FFFFFF" stopOpacity="0.6" />
-                </linearGradient>
-              </defs>
-
-              {/* centre axis + level ticks: the instrument frame */}
-              <line x1="100" x2="100" y1="8" y2="444" stroke="#C9D8E5" strokeDasharray="1 4" />
               {[60, 140, 220, 300, 380].map((y) => (
                 <g key={y} stroke="#C9D8E5">
                   <line x1="-76" x2="-68" y1={y} y2={y} />
@@ -193,23 +172,14 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                 </g>
               ))}
 
-              <ellipse cx="100" cy="436" rx={46 * c + 8} ry="5" fill="#0C476D" opacity="0.16" />
-
-              {/* silhouette */}
-              <g transform={turn(0)}>
-                <path d={BODY_PATH} fill="url(#body-shade)" stroke="#9AB4CC" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                <ellipse cx="100" cy="42" rx="26" ry="31" fill="url(#body-shade)" stroke="#9AB4CC" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                <path d={LANDMARKS} fill="none" stroke="#9AB4CC" strokeWidth="0.7" opacity="0.7" vectorEffect="non-scaling-stroke" />
-                <path d={BODY_PATH} fill="url(#body-fade)" />
-              </g>
-
+              <BodyIllustration cosine={c} sine={s} />
               {/* organs */}
-              {zones.map((z) => {
+              {c > 0.16 && zones.map((z) => {
                 const sev = severityOf(z);
                 const alert = sev !== "NOMINAL";
                 const color = alert ? STATUS_STYLES[sev].hex : "#245BCB";
                 return (
-                  <g key={z} transform={turn(ZONES[z].depth)} onClick={() => !drag.current?.moved && toggle(z)} className="cursor-pointer">
+                  <g key={z} transform={turn(ZONES[z].depth)} opacity={Math.min(1, (c - 0.16) * 2)} onClick={() => !drag.current?.moved && toggle(z)} className="cursor-pointer">
                     {ORGAN_PATHS[z].map((d, i) => (
                       <path
                         key={i}
@@ -314,34 +284,33 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
             </svg>
           </div>
 
-          {/* limited rotation: a ruler from -30° to +30° */}
-          <div className="mx-auto flex w-full max-w-[340px] items-center gap-3 pt-1">
-            <span className="eyebrow w-14">Rotate</span>
+          <div className="mx-auto flex w-full max-w-[370px] items-center gap-2 pt-1 sm:gap-3">
+            <span className="eyebrow w-14">{facing}</span>
             <div className="relative flex-1">
               <input
                 type="range"
-                min={-MAX_ANGLE}
-                max={MAX_ANGLE}
+                min={0}
+                max={FULL_TURN}
                 step={1}
                 value={angle}
                 onChange={(e) => setAngle(Number(e.target.value))}
                 aria-label="Rotate the body model"
-                aria-valuetext={`${angle} degrees`}
+                aria-valuetext={`${angle} degrees, ${facing.toLowerCase()} view`}
                 className="ruler w-full"
               />
               <div className="num pointer-events-none flex justify-between px-[3px] text-[9px] text-ink-faint" aria-hidden>
-                {[-30, -15, 0, 15, 30].map((d) => (
-                  <span key={d}>{d > 0 ? `+${d}` : d}</span>
+                {[0, 90, 180, 270, 360].map((d) => (
+                  <span key={d}>{d}°</span>
                 ))}
               </div>
             </div>
             <button
               onClick={() => setAngle(0)}
-              disabled={angle === 0}
+              disabled={angle === 0 || angle === FULL_TURN}
               className="btn-ghost num w-14 justify-center py-1 text-[11px] text-ink-soft"
               aria-label="Reset rotation"
             >
-              {angle > 0 ? `+${angle}` : angle}°
+              {angle}°
             </button>
           </div>
         </div>

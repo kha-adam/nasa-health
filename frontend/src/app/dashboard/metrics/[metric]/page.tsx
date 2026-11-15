@@ -16,6 +16,7 @@ import type {
 import { api } from "@/lib/api";
 import {
   CATEGORY_LABELS,
+  SERIES_COLORS,
   dashboardHref,
   defaultRange,
   formatNumber,
@@ -27,7 +28,7 @@ import {
 } from "@/lib/metrics";
 import { useRequireUser, useTargetAstronaut } from "@/lib/session";
 import AppShell from "@/components/AppShell";
-import MetricChart, { SERIES_COLORS, pointLabel } from "@/components/MetricChart";
+import MetricChart, { pointLabel } from "@/components/MetricChart";
 import StatusBadge, { StatusGlyph } from "@/components/StatusBadge";
 import SourceTag from "@/components/SourceTag";
 import { ErrorScreen, FullScreenLoader } from "@/components/ScreenStates";
@@ -431,7 +432,7 @@ function StatsCard({
                     ["In range", s.pct_nominal == null ? "—" : `${formatNumber(s.pct_nominal, 0)}%`],
                   ] as const
                 ).map(([label, v]) => (
-                  <div key={label} className="rounded-[16px] border border-line bg-raised/70 px-3.5 py-3">
+                  <div key={label} className="rounded-[16px] border border-line bg-raised px-3.5 py-3">
                     <dt className="eyebrow">{label}</dt>
                     <dd className="num mt-1 text-[20px] font-semibold tracking-[-0.02em] text-ink">{v}</dd>
                   </div>

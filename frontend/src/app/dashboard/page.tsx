@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Brain, Download, HeartPulse, Users } from "lucide-react";
-import type { AstronautProfile, BodyZone, MentalHealthReport, MetricDefinition, Patch } from "@/types/blue";
+import type { AstronautProfile, BodyZone, CrewLifeBoard, MentalHealthReport, MetricDefinition } from "@/types/blue";
 import { api } from "@/lib/api";
 import { dashboardHref, openLog, type PanelMode } from "@/lib/metrics";
 import { useRequireUser, useTargetAstronaut } from "@/lib/session";
@@ -17,6 +17,8 @@ import EventsPanel from "@/components/EventsPanel";
 import ExportDialog from "@/components/ExportDialog";
 import VoicePsychologistFab from "@/components/VoicePsychologistFab";
 import StatusBadge from "@/components/StatusBadge";
+import CheckInStreak from "@/components/CheckInStreak";
+import DashboardReminders from "@/components/DashboardReminders";
 import PrestigeStrip from "@/components/PrestigeStrip";
 import { ErrorScreen, FullScreenLoader } from "@/components/ScreenStates";
 
@@ -73,17 +75,16 @@ function Dashboard() {
   const [panel, setPanel] = useState<PanelMode>("physical");
   const [selected, setSelected] = useState<BodyZone | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  const [patches, setPatches] = useState<Patch[]>([]);
-
-  // Prestige badges in the mission bar: crew life is private to the astronauts.
-  const loadPatches = useCallback(() => {
+  const [crewProgress, setCrewProgress] = useState<CrewLifeBoard | null>(null);
+  // Crew Life owns the week and the signed-in astronaut's check-in days.
+  const loadCrewProgress = useCallback(() => {
     if (user?.role !== "astronaut") return;
     api
       .crewLife()
-      .then((b) => setPatches(b.patches))
+      .then(setCrewProgress)
       .catch(() => {});
   }, [user]);
-  useEffect(loadPatches, [loadPatches]);
+  useEffect(loadCrewProgress, [loadCrewProgress]);
 
   const load = useCallback(() => {
     if (!astronautId) return;
@@ -121,12 +122,14 @@ function Dashboard() {
 
   const handleReportGenerated = useCallback((report: MentalHealthReport) => {
     setProfile((p) => (p ? { ...p, mental_reports: [report, ...p.mental_reports.filter((r) => r.id !== report.id)] } : p));
-    loadPatches(); // a check-in can complete the crew challenge and raise its prestige
-  }, [loadPatches]);
+    loadCrewProgress();
+  }, [loadCrewProgress]);
 
   const failure = sessionError ?? error;
   if (failure) return <ErrorScreen message={failure} onRetry={sessionError ? retry : load} />;
   if (!user || !profile || !catalog || profile.id !== astronautId) return <FullScreenLoader />;
+  const progress = !asSurgeon && crewProgress?.astronaut_id === profile.id ? crewProgress : null;
+  const checkInDue = progress ? !progress.challenge.your_days.includes(progress.mission_day) : false;
 
   return (
     <AppShell
@@ -134,9 +137,17 @@ function Dashboard() {
       profile={profile}
       active="overview"
       onLogout={logout}
-      onOpenLog={asSurgeon ? undefined : openLog}
+      fit
       minimalHeader
-      headerExtra={asSurgeon ? undefined : <PrestigeStrip patches={patches} />}
+      headerExtra={progress ? (
+        <div className="order-1 flex min-w-0 items-center gap-1.5 sm:gap-3">
+          <Link href="/dashboard/crew-life#challenge-title" className="rounded-full hover:brightness-95">
+            <CheckInStreak days={progress.streak_days} />
+          </Link>
+          <PrestigeStrip patches={progress.patches} />
+          <DashboardReminders checkInDue={checkInDue} astronautId={progress.astronaut_id} />
+        </div>
+      ) : undefined}
     >
       {/* Who is followed and which view */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-1 pb-3 pt-0.5 md:px-2">
@@ -170,14 +181,14 @@ function Dashboard() {
         </div>
       </div>
 
-      <main className="grid w-full flex-1 grid-cols-1 items-start gap-3 pb-28 md:grid-cols-2 lg:grid-cols-[minmax(0,30fr)_minmax(0,38fr)_minmax(0,32fr)]">
+      <main className="thin-scroll grid min-h-0 w-full flex-1 grid-cols-1 items-start gap-3 overflow-y-auto pb-24 md:grid-cols-2 min-[55rem]:grid-cols-[minmax(0,30fr)_minmax(0,38fr)_minmax(0,32fr)] min-[55rem]:grid-rows-[minmax(0,1fr)] min-[55rem]:overflow-hidden min-[55rem]:pb-0">
         {/* Left: short status overview. */}
-        <div className="min-w-0">
-          <VitalsPanel profile={profile} panel={panel} catalog={catalog} asSurgeon={asSurgeon} />
+        <div className="min-w-0 min-[55rem]:max-h-full min-[55rem]:overflow-y-auto">
+          <VitalsPanel profile={profile} catalog={catalog} asSurgeon={asSurgeon} />
         </div>
 
         {/* Centre: body (physical) or mind (mental). */}
-        <div className="flex min-h-[560px] min-w-0 flex-col md:col-start-2 md:row-start-1 lg:col-start-2">
+        <div className="flex min-h-[420px] min-w-0 flex-col md:col-start-2 md:row-start-1 min-[55rem]:min-h-0 min-[55rem]:self-stretch">
           {panel === "physical" ? (
             <HumanBodyModel profile={profile} selected={selected} onSelect={setSelected} />
           ) : (
@@ -186,7 +197,7 @@ function Dashboard() {
         </div>
 
         {/* Right: only findings needing attention; reports stay in the Reports section. */}
-        <div className="flex min-w-0 flex-col gap-3 md:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-start-1">
+        <div className="flex min-w-0 flex-col gap-3 md:col-span-2 min-[55rem]:col-span-1 min-[55rem]:col-start-3 min-[55rem]:row-start-1 min-[55rem]:max-h-full min-[55rem]:overflow-y-auto min-[55rem]:pb-20">
           <ObservationsPanel
             profile={profile}
             catalog={catalog}
