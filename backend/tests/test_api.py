@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from core import auth, profiles
+from core import auth, crew_life, profiles
 from main import app
 
 PASSWORDS = {
@@ -15,6 +15,7 @@ PASSWORDS = {
 @pytest.fixture(autouse=True)
 def reset_store():
     profiles.load_seed()
+    crew_life.load_seed()
     auth.reset_state()
 
 

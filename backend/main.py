@@ -18,16 +18,23 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 
-from core import auth, metrics, profiles, psychologist, report_generator, speech, telemetry
+from core import auth, crew_life, metrics, profiles, psychologist, report_generator, speech, telemetry
 from schemas import (
     AstronautProfile,
+    BlueActivityRequest,
     ChatRequest,
     ChatResponse,
+    ChoiceRequest,
+    CrewLifeBoard,
+    EncouragementRequest,
     HistoryRange,
     LoginRequest,
     MentalHealthReport,
     MetricDefinition,
     MetricHistory,
+    PerkCode,
+    PreferencesRequest,
+    RitualRequest,
     SessionUser,
 )
 
@@ -178,9 +185,16 @@ def metric_history(
 # --------------------------------------------------------------------------
 
 
+def _user_messages(req: ChatRequest) -> int:
+    return sum(1 for m in req.messages if m.role == "user")
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, user: User) -> ChatResponse:
     profile = _require_private(user, req.astronaut_id)
+    # Voice of the Station counts messages, never their content.
+    if req.session_id or req.finish_session:
+        crew_life.record_blue_messages(profile.id, req.session_id, _user_messages(req))
 
     if req.finish_session:
         mode = psychologist.determine_mode(profile, req.messages)
@@ -191,6 +205,7 @@ def chat(req: ChatRequest, user: User) -> ChatResponse:
             session_mode=mode,
             suggested_to_wrap_up=True,
             generated_report=report,
+            reward=crew_life.record_checkin(profile),
         )
 
     reply, mode, wrap = psychologist.scripted_reply(profile, req.messages)
@@ -241,6 +256,8 @@ async def transcribe(user: User, audio: UploadFile = File(...)) -> dict[str, str
 @app.post("/api/voice-session")
 async def voice_session(req: ChatRequest, user: User) -> JSONResponse:
     profile = _require_private(user, req.astronaut_id)
+    if req.session_id:
+        crew_life.record_blue_messages(profile.id, req.session_id, _user_messages(req))
     context = profile.model_dump()
     # Keep only recent reports in the voice prompt; the frozen profile remains untouched.
     context["mental_reports"] = context["mental_reports"][:3]
@@ -248,3 +265,60 @@ async def voice_session(req: ChatRequest, user: User) -> JSONResponse:
     if token is None:
         raise HTTPException(status_code=503, detail="Live voice is unavailable. You can keep using text chat.")
     return JSONResponse(token, headers={"Cache-Control": "no-store"})
+
+
+# --------------------------------------------------------------------------
+# Crew life — weekly titles, crew challenge, rewards aboard (astronauts only)
+# --------------------------------------------------------------------------
+
+
+def _crew_member(user: SessionUser) -> str:
+    """Crew life is between crewmates: the flight surgeon has no access."""
+    if user.role != "astronaut" or user.astronaut_id is None:
+        raise HTTPException(status_code=403, detail="Crew life is shared between the astronauts only")
+    return user.astronaut_id
+
+
+def _crew_action(action, *args) -> CrewLifeBoard:
+    try:
+        return action(*args)
+    except crew_life.CrewLifeError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail) from None
+
+
+@app.get("/api/crew-life", response_model=CrewLifeBoard)
+def crew_life_board(user: User) -> CrewLifeBoard:
+    return _crew_action(crew_life.board, _crew_member(user))
+
+
+@app.post("/api/crew-life/rituals", response_model=CrewLifeBoard)
+def validate_ritual(req: RitualRequest, user: User) -> CrewLifeBoard:
+    return _crew_action(crew_life.validate_ritual, _crew_member(user), req.kind)
+
+
+@app.post("/api/crew-life/encouragements", response_model=CrewLifeBoard)
+def send_encouragement(req: EncouragementRequest, user: User) -> CrewLifeBoard:
+    return _crew_action(crew_life.encourage, _crew_member(user), req.to_id, req.message)
+
+
+@app.post("/api/crew-life/perks/{perk}", response_model=CrewLifeBoard)
+def choose_perk(perk: PerkCode, req: ChoiceRequest, user: User) -> CrewLifeBoard:
+    return _crew_action(crew_life.choose_perk, _crew_member(user), perk, req.option)
+
+
+@app.post("/api/crew-life/challenge/vote", response_model=CrewLifeBoard)
+def vote_crew_reward(req: ChoiceRequest, user: User) -> CrewLifeBoard:
+    return _crew_action(crew_life.vote_reward, _crew_member(user), req.option)
+
+
+@app.post("/api/crew-life/preferences", response_model=CrewLifeBoard)
+def crew_life_preferences(req: PreferencesRequest, user: User) -> CrewLifeBoard:
+    return _crew_action(crew_life.set_sharing, _crew_member(user), req.share_in_titles)
+
+
+@app.post("/api/crew-life/blue-activity", status_code=204)
+def blue_activity(req: BlueActivityRequest, user: User) -> Response:
+    """Message count of a BLUE conversation closed without filing a report."""
+    _require_private(user, req.astronaut_id)
+    crew_life.record_blue_messages(req.astronaut_id, req.session_id, req.user_messages)
+    return Response(status_code=204)

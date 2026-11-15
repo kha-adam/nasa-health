@@ -14,11 +14,14 @@ Route mapping:
 - MentalHealthReport: generated_report when finish_session is true
 - POST /api/astronauts/{id}/reports/{report_id}/earth-reply returns the
   updated MentalHealthReport (earth_status REVIEWED_BY_EARTH)
+- CheckinReward: ChatResponse.reward when a check-in (finish_session) is filed
+- CrewLifeBoard: GET /api/crew-life and every POST /api/crew-life/* (astronaut
+  only, always about the signed-in astronaut; the flight surgeon gets 403)
 """
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 AstronautId = Literal["astro-vance", "astro-chen", "astro-lin"]
 StatusTag = Literal["NOMINAL", "ADVISORY", "URGENT"]
@@ -32,6 +35,10 @@ MetricCadence = Literal["continuous", "daily", "weekly"]
 HistoryRange = Literal["24h", "7d", "30d", "all"]
 Resolution = Literal["15min", "hourly", "daily"]
 EventScope = Literal["crew", "cabin"]
+TitleCode = Literal["calm_keeper", "checkin_star", "station_voice", "sleep_captain", "crew_compass"]
+PerkCode = Literal["station_playlist", "menu_meal", "wakeup_song", "quiet_hour", "sunday_activity"]
+RitualKind = Literal["breathing", "stretch", "window", "music", "wind_down", "gratitude"]
+PatchCode = Literal["calm_keeper", "checkin_star", "station_voice", "sleep_captain", "crew_compass", "crew_challenge"]
 
 
 class FrozenModel(BaseModel):
@@ -227,6 +234,23 @@ class ChatRequest(FrozenModel):
     astronaut_id: AstronautId
     messages: list[ChatMessage]
     finish_session: bool = False
+    # Random id the client draws for each BLUE conversation, so the crew-life
+    # tally counts every message once however many times the transcript is sent.
+    session_id: str | None = Field(default=None, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+class CheckinReward(FrozenModel):
+    """Small, immediate thank-you shown after each check-in with BLUE."""
+
+    thank_you: str
+    space_fact: str
+    checkin_days: int  # distinct days with a check-in this mission week (today included)
+    target_days: int
+    streak_days: int  # consecutive check-in days this week, ending today
+    first_today: bool  # False when today's check-in was already counted
+    challenge_completed: bool
+    challenge_just_completed: bool  # this check-in completed the crew challenge
+    stars: int  # stars on the mission map
 
 
 class ChatResponse(FrozenModel):
@@ -234,3 +258,136 @@ class ChatResponse(FrozenModel):
     session_mode: SessionMode
     suggested_to_wrap_up: bool
     generated_report: MentalHealthReport | None = None
+    reward: CheckinReward | None = None
+
+
+# --------------------------------------------------------------------------
+# Crew life — weekly titles, crew challenge, rewards aboard, mission map
+# --------------------------------------------------------------------------
+
+
+class CrewMember(FrozenModel):
+    id: AstronautId
+    name: str
+    role: str
+    avatar_initials: str
+
+
+class PerkStatus(FrozenModel):
+    """Concrete reward aboard that the title holder chooses."""
+
+    code: PerkCode
+    label: str
+    options: list[str]
+    choice: str | None = None
+    chosen_by: AstronautId | None = None
+
+
+class TitleStanding(FrozenModel):
+    code: TitleCode
+    name: str
+    criterion: str
+    # Only the leaders are named — never a ranking, never other people's scores.
+    holders: list[AstronautId]
+    you_hold: bool
+    your_value: str
+    perk: PerkStatus
+
+
+class RewardOption(FrozenModel):
+    code: str
+    label: str
+    kind: Literal["film", "meal"]
+
+
+class ChallengeStatus(FrozenModel):
+    week: int
+    start_day: int
+    end_day: int
+    label: str
+    target_days: int
+    your_days: list[int]
+    crew_size: int
+    crew_on_target: int  # how many crew members reached the target (anonymous)
+    days_left: int
+    completed: bool
+    reward_options: list[RewardOption]
+    vote_counts: dict[str, int]
+    your_vote: str | None = None
+    reward_choice: str | None = None
+
+
+class MissionWeek(FrozenModel):
+    week: int
+    start_day: int
+    end_day: int
+    completed: bool
+    current: bool
+
+
+class Patch(FrozenModel):
+    code: PatchCode
+    name: str
+    week: int
+    current: bool = False  # held this week; awarded when the week closes
+
+
+class RitualOption(FrozenModel):
+    kind: RitualKind
+    label: str
+    minutes: int
+
+
+class Encouragement(FrozenModel):
+    id: str
+    from_id: AstronautId
+    to_id: AstronautId
+    mission_day: int
+    message: str
+
+
+class CrewLifeBoard(FrozenModel):
+    astronaut_id: AstronautId
+    mission_day: int
+    week: int
+    week_start_day: int
+    week_end_day: int
+    crew: list[CrewMember]
+    titles: list[TitleStanding]
+    challenge: ChallengeStatus
+    mission_map: list[MissionWeek]
+    stars: int
+    patches: list[Patch]
+    ritual_options: list[RitualOption]
+    rituals_today: list[RitualKind]
+    rituals_week: int
+    max_rituals_per_day: int
+    encouragements_received: list[Encouragement]
+    encouragements_sent: list[Encouragement]
+    max_encouragements_per_day: int
+    share_in_titles: bool
+
+
+class RitualRequest(FrozenModel):
+    kind: RitualKind
+
+
+class EncouragementRequest(FrozenModel):
+    to_id: AstronautId
+    message: str = Field(min_length=1, max_length=140)
+
+
+class ChoiceRequest(FrozenModel):
+    option: str = Field(min_length=1, max_length=80)
+
+
+class PreferencesRequest(FrozenModel):
+    share_in_titles: bool
+
+
+class BlueActivityRequest(FrozenModel):
+    """Message count of a BLUE conversation closed without filing a report."""
+
+    astronaut_id: AstronautId
+    session_id: str = Field(max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    user_messages: int = Field(ge=0, le=500)
