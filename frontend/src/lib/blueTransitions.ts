@@ -104,8 +104,13 @@ export const TRANSITIONS: Record<TransitionKind, ClipTiming & { media: { src: st
 };
 
 export const TRANSITION_SETTINGS = {
-  /** Login: open the destination once the wave veil is opaque (s). */
-  loginNavigateAt: timeline.login.spin[1],
+  /**
+   * Login: open the destination once the wave veil is opaque (0.5 s), while BLUE is parked
+   * at the centre (0.45 - 2.45 s). Mounting the dashboard is one long main-thread task: here
+   * it cannot jolt the actor, and the dashboard gets ~1.8 s to load before BLUE needs its
+   * button (toTarget). Opening it later makes BLUE wait at the centre, then miss the button.
+   */
+  loginNavigateAt: 0.6,
   /** Logout: leave the dashboard once sign-out is confirmed, not before BLUE has left its button (s). */
   logoutNavigateNotBefore: 0.5,
   /** Logout: the "Talk to Blue" label fades out above the veil. */

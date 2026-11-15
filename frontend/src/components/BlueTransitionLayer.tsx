@@ -475,6 +475,9 @@ export default function BlueTransitionLayer({ children }: { children: React.Reac
     let dst: Rect | null = null;
     if (!r.targetLost && t >= T.lookupFrom && r.navigated) dst = measure(r.target);
     if (!r.targetLost && !dst && t >= T.toTarget[0] - 0.04) {
+      // Never wait for an icon whose page is not open yet (logout opens it only once the
+      // sign-out is confirmed, see above).
+      if (r.kind === "login") navigate(r);
       // Hold the sphere at the centre until the icon exists, within limits.
       if (r.waitingSince === null) {
         r.waitingSince = now;
