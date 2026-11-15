@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Mic, MicOff, Send, Volume2, VolumeX, X, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { Award, FileText, Mic, MicOff, Send, Sparkles, Star, Volume2, VolumeX, X, RotateCcw } from "lucide-react";
 import type { AgentSession as LiveSession, SessionToken } from "@fishaudio/agent-client";
-import type { AstronautId, ChatMessage, MentalHealthReport } from "@/types/blue";
+import type { AstronautId, ChatMessage, CheckinReward, MentalHealthReport } from "@/types/blue";
 import { api, API_BASE } from "@/lib/api";
 import { OPEN_LOG_EVENT } from "@/lib/metrics";
 import { browserSpeech, recognitionConstructor, WakeListener, isWakePhrase } from "@/lib/browserSpeech";
@@ -15,6 +16,8 @@ const GREETING = "Hi, how are you doing today? Ready to take your survey?";
 interface Props { astronautId: AstronautId; astronautName: string; onReportGenerated: (report: MentalHealthReport) => void; }
 interface Turn extends ChatMessage { id: string; final: boolean; }
 type Phase = "idle" | "connecting" | "listening" | "thinking" | "speaking";
+/** One id per BLUE conversation, so crew life counts each message once. */
+const newSessionId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `s-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 export default function VoicePsychologistFab({ astronautId, astronautName, onReportGenerated }: Props) {
   const [open, setOpen] = useState(false);
@@ -29,6 +32,8 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const [error, setError] = useState("");
   const [finished, setFinished] = useState(false);
   const [filing, setFiling] = useState(false);
+  const [reward, setReward] = useState<CheckinReward | null>(null);
+  const sessionId = useRef(newSessionId());
   const dialog = useRef<HTMLDialogElement>(null);
   const fab = useRef<HTMLButtonElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
@@ -62,6 +67,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const sendRef = useRef<(text: string) => Promise<void>>(async () => {});
   const resumeWakeRef = useRef<() => void>(() => {});
   const connectRef = useRef<(greet: boolean) => Promise<void>>(async () => {});
+  const reportActivityRef = useRef<() => void>(() => {});
 
   const messages = (): ChatMessage[] => transcript.current.filter(t => t.final).map(({ role, content }) => ({ role, content }));
   const update = useCallback((id: string, role: ChatMessage["role"], content: string, final: boolean) => {
@@ -160,7 +166,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     const token = generation.current; engine.current = "live"; setPhase("connecting"); setError("");
     try {
       const response = await fetch(`${API_BASE}/api/voice-session`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ astronaut_id: astronautId, messages: messages(), finish_session: false }), signal: AbortSignal.timeout(5000) });
+        body: JSON.stringify({ astronaut_id: astronautId, messages: messages(), finish_session: false, session_id: sessionId.current }), signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error("Live voice unavailable");
       const sessionToken = await response.json() as SessionToken;
       const { AgentSession } = await import("@fishaudio/agent-client");
@@ -210,7 +216,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     capture.current?.setEnabled(false); stopAudio(); setPhase("thinking");
     update(`u-${++sequence.current}`, "user", text, true);
     try {
-      const response = await api.chat({ astronaut_id: astronautId, messages: messages(), finish_session: false });
+      const response = await api.chat({ astronaut_id: astronautId, messages: messages(), finish_session: false, session_id: sessionId.current });
       if (token !== generation.current || !opened.current) return;
       update(`a-${++sequence.current}`, "assistant", response.reply, true); await backupSpeak(response.reply);
     } catch { if (token === generation.current) setError("BLUE couldn’t reach the habitat server. Your message is saved; try again."); }
@@ -236,8 +242,17 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   };
   resumeWakeRef.current = resumeWake;
 
+  const reportActivity = () => {
+    // A conversation closed without a report still counts for Voice of the Station (message count only).
+    const said = messages().filter(m => m.role === "user").length;
+    if (said && !done.current) void api.blueActivity(astronautId, sessionId.current, said).catch(() => {});
+  };
+
+  reportActivityRef.current = reportActivity;
+
   const close = async () => {
     if (transitioning.current && !opened.current) return;
+    reportActivity();
     transitioning.current = true; opened.current = false; generation.current++;
     restoreFocus.current = true; setOpen(false); dialog.current?.close();
     await releaseSession();
@@ -288,9 +303,9 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     setFiling(true); const token = generation.current;
     await session.current?.setMicMuted(true); capture.current?.setEnabled(false);
     try {
-      const response = await api.chat({ astronaut_id: astronautId, messages: messages(), finish_session: true });
+      const response = await api.chat({ astronaut_id: astronautId, messages: messages(), finish_session: true, session_id: sessionId.current });
       if (token !== generation.current || !opened.current) return;
-      if (response.generated_report) { onReportGenerated(response.generated_report); done.current = true; setFinished(true); muted.current = true; setMicMuted(true); }
+      if (response.generated_report) { onReportGenerated(response.generated_report); done.current = true; setFinished(true); setReward(response.reward); muted.current = true; setMicMuted(true); }
       await releaseSession(); update(`a-${++sequence.current}`, "assistant", response.reply, true); setPhase("idle");
     } catch { setError("The report couldn’t be filed. Your conversation is saved here; please try again."); }
     finally { if (token === generation.current) setFiling(false); }
@@ -317,6 +332,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     };
     document.addEventListener("visibilitychange", visibility);
     return () => {
+      if (opened.current) reportActivityRef.current();
       mounted.current = false; opened.current = false; generation.current++; detector.dispose();
       status?.removeEventListener("change", changed); document.removeEventListener("visibilitychange", visibility); void releaseSession();
     };
@@ -341,10 +357,20 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
       <div ref={scroll} className={styles.transcript} role="log" aria-label="Conversation with Blue" aria-live="polite">{turns.map(turn => <p key={turn.id} className={`${styles.message} ${turn.role === "user" ? styles.user : ""}`} style={{ opacity: turn.final ? 1 : .7 }}><span className={styles.speaker}>{turn.role === "user" ? "You" : "BLUE"}</span>{turn.content}</p>)}
         {error && <p className={`${styles.notice} ${styles.error}`} role="alert">{error}</p>}
         {finished && <p className={styles.notice}>Report filed. You’ll find it in Mental Health Reports.</p>}
+        {finished && reward && <section className={styles.reward} aria-labelledby="blue-reward-title">
+          <p id="blue-reward-title" className={styles.rewardTitle}><Sparkles size={15} aria-hidden="true"/> Thank you</p>
+          <p className={styles.rewardText}>{reward.thank_you}</p>
+          <ol className={styles.rewardDays} aria-label={`${reward.checkin_days} of ${reward.target_days} check-in days this week`}>
+            {Array.from({ length: Math.max(reward.target_days, reward.checkin_days) }, (_, i) => <li key={i} className={i < reward.checkin_days ? styles.dayDone : ""} aria-hidden="true"/>)}
+          </ol>
+          {reward.challenge_just_completed && <p className={styles.rewardStar}><Star size={14} aria-hidden="true"/> New star on the mission map · {reward.stars} stars</p>}
+          <p className={styles.fact}><span>Space fact</span>{reward.space_fact}</p>
+          <Link className={styles.rewardLink} onClick={() => void close()} href={reward.challenge_just_completed ? "/dashboard/crew-life?star=new" : "/dashboard/crew-life"}><Award size={14} aria-hidden="true"/> Crew life: titles, challenge &amp; mission map</Link>
+        </section>}
       </div>
       <footer className={styles.footer}>
         {notice && <p className={styles.notice} role="status">{notice}</p>}
-        {finished ? <button className={styles.report} onClick={() => { transcript.current = []; setTurns([]); done.current = false; setFinished(false); muted.current = false; setMicMuted(false); setNotice(""); setError(""); void connectRef.current(true); }}><RotateCcw size={16}/> Start a new session</button> : <>
+        {finished ? <button className={styles.report} onClick={() => { transcript.current = []; setTurns([]); done.current = false; setFinished(false); setReward(null); sessionId.current = newSessionId(); muted.current = false; setMicMuted(false); setNotice(""); setError(""); void connectRef.current(true); }}><RotateCcw size={16}/> Start a new session</button> : <>
           <button className={`${styles.report} ${micMuted ? "" : styles.listening}`} disabled={phase === "connecting" || filing} aria-label={micMuted ? "Unmute microphone" : "Mute microphone"} aria-pressed={micMuted} onClick={() => void toggleMic()}>{micMuted ? <MicOff size={17}/> : <Mic size={17}/>} {micMuted ? "Unmute microphone" : "Mute microphone"}</button>
           <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(draft.trim()); }}><textarea ref={input} className={styles.input} aria-label="Your message to Blue" placeholder="Speak freely, or type here…" rows={1} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft.trim()); } }}/><button className={`${styles.icon} ${styles.primary}`} aria-label="Send message" disabled={!draft.trim() || phase === "connecting" || phase === "thinking" || filing}><Send size={18}/></button></form>
           {!session.current && engine.current === "live" && phase !== "connecting" && <button className={styles.report} onClick={() => void connectRef.current(false)}>Reconnect voice</button>}

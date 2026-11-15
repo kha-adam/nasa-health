@@ -54,7 +54,46 @@ Sessions live in memory: restarting the backend signs everyone out.
 5. **End Session & Generate Earth Report** → new headline at the top of the reports list →
    open it or **Simulate Earth Psychologist Reply** for the "What to do" directive.
 
-Generated reports live in memory only: restart the backend to reset the demo.
+6. Still as `lin`, open **Crew life** in the rail. Maya is the last crewmate missing for this
+   week's challenge (4 of 5 days): her check-in completes it, BLUE thanks her with a space fact,
+   a 17th star joins the **mission map** and the crew can vote for the shared reward. Send three
+   encouragements to make her the week's **Crew Compass**.
+
+Generated reports and crew-life activity live in memory only: restart the backend to reset the demo.
+
+## Crew life (weekly titles & crew challenge)
+
+A light "employee of the month", space edition, to make talking to BLUE something the crew want
+to do (`backend/core/crew_life.py`, page `/dashboard/crew-life`, astronauts only):
+
+| Title | Who leads |
+| --- | --- |
+| Keeper of Calm | most pauses / calming rituals validated (max 3 a day count) |
+| Check-in Star | most regular run of check-ins with BLUE |
+| Voice of the Station | most messages to BLUE, whatever the topic (counted, never read) |
+| Sleep Captain | most regular bedtime from the CSV, rewarding regularity, not hours slept |
+| Crew Compass | most encouragements sent to crewmates (max 3 a day) |
+
+* **Crew challenge instead of duels:** the whole crew checks in on 5 of 7 days. Completing it
+  unlocks a shared reward the crew votes on (movie night or special meal), raises the Crew Challenge badge, and adds a
+  **star on the mission map**.
+* **Rewards aboard:** each title holder picks a concrete perk (station playlist, a favourite meal
+  on the menu, the wake-up song, the quiet-hour programme, the Sunday activity).
+* **Prestige badges:** each title and the crew challenge has its own emblem (wings, star, blades,
+  crown, compass rose, crew shield) on one premium gunmetal-and-chrome body. Earning it again
+  raises its rarity, coded by the colour of the glowing inlaid lines: Common white ×1, Rare blue
+  ×2, Epic purple ×3, Legendary red ×5, Mythic yellow ×10, with one pip per tier (sparkles from
+  Epic, light rays and a moving reflection from Legendary). The overview's mission bar shows the
+  astronaut's badges next to *BLUE / Crew Health* (details on hover).
+* **Immediate reward:** every check-in filed with BLUE returns a thank-you, the week's progress
+  and a space fact (`ChatResponse.reward`).
+* **No pressure, no exposure:** only leaders are named, ties are shared, nobody is ranked last,
+  and nobody sees another crewmate's numbers. Anyone can leave the titles; their check-ins still
+  count for the crew. The flight surgeon has no access (403).
+
+Mission weeks start on day 4 (days 1–3 were launch and commissioning), so day 150 closes week 21.
+The week's activity is seeded from `backend/data/crew_life.json`; Sleep Captain comes from the
+bedtimes `scripts/build_mock_data.py` extracts into `telemetry/<id>.json` (`sleep` block).
 
 ## Data
 

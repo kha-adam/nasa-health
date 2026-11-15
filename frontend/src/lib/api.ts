@@ -3,7 +3,10 @@ import type {
   AstronautProfile,
   ChatRequest,
   ChatResponse,
+  CrewLifeBoard,
   HistoryRange,
+  PerkCode,
+  RitualKind,
   MentalHealthReport,
   MetricDefinition,
   MetricHistory,
@@ -77,7 +80,23 @@ export const api = {
   chat: (body: ChatRequest) => request<ChatResponse>("/api/chat", { method: "POST", body: JSON.stringify(body) }),
   simulateEarthReply: (id: AstronautId, reportId: string) =>
     request<MentalHealthReport>(`/api/astronauts/${id}/reports/${reportId}/earth-reply`, { method: "POST" }),
+
+  // Crew life (astronauts only; always about the signed-in astronaut).
+  crewLife: () => request<CrewLifeBoard>("/api/crew-life"),
+  validateRitual: (kind: RitualKind) => post<CrewLifeBoard>("/api/crew-life/rituals", { kind }),
+  encourage: (toId: AstronautId, message: string) =>
+    post<CrewLifeBoard>("/api/crew-life/encouragements", { to_id: toId, message }),
+  choosePerk: (perk: PerkCode, option: string) => post<CrewLifeBoard>(`/api/crew-life/perks/${perk}`, { option }),
+  voteCrewReward: (option: string) => post<CrewLifeBoard>("/api/crew-life/challenge/vote", { option }),
+  setShareInTitles: (share: boolean) => post<CrewLifeBoard>("/api/crew-life/preferences", { share_in_titles: share }),
+  /** Message count of a BLUE conversation closed without filing a report (fire and forget). */
+  blueActivity: (id: AstronautId, sessionId: string, userMessages: number) =>
+    post<void>("/api/crew-life/blue-activity", { astronaut_id: id, session_id: sessionId, user_messages: userMessages }),
 };
+
+function post<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, { method: "POST", body: JSON.stringify(body) });
+}
 
 export const ASTRONAUT_IDS: AstronautId[] = ["astro-vance", "astro-chen", "astro-lin"];
 

@@ -17,6 +17,8 @@ interface Props {
   mission: MissionClock | null;
   onLogout: () => void;
   minimal?: boolean;
+  /** Shown right after the product name (the overview puts the astronaut's prestige badges here). */
+  extra?: React.ReactNode;
 }
 
 function subscribeOnline(callback: () => void) {
@@ -57,12 +59,12 @@ function Field({ label, children, className = "" }: { label: string; children: R
 }
 
 /** Mission bar: product, mission day, UTC clock, data sync, Earth link, account. */
-export default function TopNavBar({ user, mission, onLogout, minimal = false }: Props) {
+export default function TopNavBar({ user, mission, onLogout, minimal = false, extra }: Props) {
   const online = useOnline();
   const utc = useUtcClock();
 
   return (
-    <header className={`topbar flex shrink-0 items-center gap-x-4 rounded-[22px] px-4 text-white md:px-5 ${minimal ? "h-14 justify-between" : "flex-wrap gap-y-2 py-2.5 xl:h-14 xl:flex-nowrap xl:py-0"}`}>
+    <header className={`topbar flex shrink-0 items-center gap-x-4 rounded-[22px] px-4 text-white md:px-5 ${minimal ? `${extra ? "h-16" : "h-14"} justify-between` : "flex-wrap gap-y-2 py-2.5 xl:h-14 xl:flex-nowrap xl:py-0"}`}>
       <p className="order-1 flex items-center gap-2 whitespace-nowrap text-sm">
         {/* eslint-disable-next-line @next/next/no-img-element -- small pre-sized decorative asset */}
         <img src="/brand/chrome-sphere.webp" alt="" width={26} height={26} className="h-[26px] w-[26px] md:hidden" />
@@ -72,6 +74,8 @@ export default function TopNavBar({ user, mission, onLogout, minimal = false }: 
           <span className="font-display font-medium text-white/90">Crew Health</span>
         </span>
       </p>
+
+      {extra}
 
       {!minimal && <div className="order-3 flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1.5 xl:order-2 xl:w-auto xl:flex-1 xl:flex-nowrap xl:gap-x-4">
         {mission && (
