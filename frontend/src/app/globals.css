@@ -424,40 +424,64 @@ h3 {
   }
 }
 
-/* Prestige badges: rarer tiers twinkle (Epic+) and catch a moving reflection (Legendary+). */
-.prestige-twinkle {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: prestige-twinkle 2.6s ease-in-out infinite;
+/*
+ * Prestige badges: rarer tiers twinkle (Epic+) and catch a moving reflection (Legendary+).
+ * Only transform and opacity are animated, on HTML elements above the emblem, so the GPU
+ * compositor runs them without repainting (the filtered emblem is drawn once).
+ */
+.prestige-spark {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: prestige-spark 2.6s ease-in-out infinite;
+  will-change: transform, opacity;
 }
-@keyframes prestige-twinkle {
+@keyframes prestige-spark {
   0%,
   100% {
     opacity: 0.35;
-    transform: scale(0.55) rotate(0deg);
+    transform: translate(-50%, -50%) scale(0.55) rotate(0deg);
   }
   50% {
     opacity: 1;
-    transform: scale(1) rotate(45deg);
+    transform: translate(-50%, -50%) scale(1) rotate(45deg);
   }
 }
-.prestige-sweep {
-  animation: prestige-sweep 3.8s ease-in-out infinite;
+.prestige-sweep-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Keeps the reflection on the emblem's face. */
+  clip-path: ellipse(36% 34% at 50% 43%);
 }
-@keyframes prestige-sweep {
+.prestige-sweep-band {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 39%;
+  width: 22%;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.42), rgb(255 255 255 / 0));
+  animation: prestige-band 3.8s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes prestige-band {
   0%,
   55% {
-    transform: translateX(-56px);
+    transform: skewX(-24deg) translateX(-280%);
   }
   100% {
-    transform: translateX(64px);
+    transform: skewX(-24deg) translateX(300%);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .prestige-twinkle {
+  .prestige-spark {
     animation: none;
+    opacity: 0.9;
   }
-  .prestige-sweep {
+  .prestige-sweep-band {
     display: none;
   }
 }

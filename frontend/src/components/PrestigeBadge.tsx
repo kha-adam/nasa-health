@@ -205,10 +205,13 @@ export default function PrestigeBadge({
   const sparkles = rank >= 5 ? SPARKLES : rank >= 3 ? SPARKLES.slice(0, 2) : [];
   const pipStart = 32 - ((rank - 1) * 6.4) / 2;
 
+  const width = (size * 64) / 70;
   return (
+    <span className="relative inline-flex shrink-0" style={{ width, height: size }}>
+    {/* Static emblem: metal, glowing inlays, halo, medallion. Its filters are drawn once. */}
     <svg
       viewBox="0 0 64 70"
-      width={(size * 64) / 70}
+      width={width}
       height={size}
       role={label ? "img" : undefined}
       aria-label={label}
@@ -280,8 +283,6 @@ export default function PrestigeBadge({
         <g fill="none" stroke={rar.line} strokeWidth={1.1} strokeLinecap="round" strokeLinejoin="round" filter={url("glow")}>
           {emblem.inlay}
         </g>
-        {/* Legendary and up: a reflection sweeping across the badge. */}
-        {rank >= 4 && <path className="prestige-sweep" d="M14 64 L44 -6 L52 -6 L22 64 Z" fill="#ffffff" opacity={0.32} />}
       </g>
 
       {/* Medallion: dark field, glowing rarity ring, glowing glyph. */}
@@ -289,18 +290,6 @@ export default function PrestigeBadge({
         {emblem.field}
       </g>
       <g filter={url("glow")}>{emblem.glyph(rar.light)}</g>
-
-      {/* Epic and up: twinkles around the emblem. */}
-      {sparkles.map(([x, y, r, delay]) => (
-        <path
-          key={`${x}-${y}`}
-          d={sparkle(x, y, r)}
-          fill={rar.light}
-          filter={url("glow")}
-          className="prestige-twinkle"
-          style={{ animationDelay: `${delay}s` }}
-        />
-      ))}
 
       {/* Rank pips: one per rarity tier reached. */}
       {Array.from({ length: rank }, (_, i) => {
@@ -317,5 +306,35 @@ export default function PrestigeBadge({
         );
       })}
     </svg>
+
+    {/*
+      Moving effects (Epic+: twinkles, Legendary+: sweeping reflection) are plain HTML
+      elements animated with transform and opacity only. The compositor (GPU) moves them
+      without redrawing anything, and the filtered emblem underneath is never repainted.
+    */}
+    {rank >= 4 && (
+      <span aria-hidden className="prestige-sweep-clip">
+        <span className="prestige-sweep-band" />
+      </span>
+    )}
+    {sparkles.map(([x, y, r, delay]) => (
+      <span
+        key={`${x}-${y}`}
+        aria-hidden
+        className="prestige-spark"
+        style={{
+          left: `${(x / 64) * 100}%`,
+          top: `${(y / 70) * 100}%`,
+          width: `${((r * 4.4) / 64) * 100}%`,
+          animationDelay: `${delay}s`,
+          background: `radial-gradient(circle, ${rar.light} 0%, ${rar.glow}99 32%, transparent 70%)`,
+        }}
+      >
+        <svg viewBox="-1 -1 2 2" className="block h-full w-full overflow-visible">
+          <path d={sparkle(0, 0, 0.46)} fill={rar.light} />
+        </svg>
+      </span>
+    ))}
+    </span>
   );
 }
