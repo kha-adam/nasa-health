@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { AstronautId, SessionUser } from "@/types/blue";
+import { useBlueTransition } from "@/components/BlueTransitionLayer";
 import { ApiError, api, isAstronautId } from "./api";
 
 /** Load the signed-in user; send anyone without a session back to the login screen. */
 export function useRequireUser() {
   const router = useRouter();
+  const transition = useBlueTransition();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,13 +26,19 @@ export function useRequireUser() {
 
   useEffect(load, [load]);
 
+  // Sign-out starts at once; the transition layer hides private data in the same frame,
+  // plays BLUE's way back to the login title and opens "/" only once sign-out is confirmed.
   const logout = useCallback(async () => {
+    if (transition) {
+      transition.logout();
+      return;
+    }
     try {
       await api.logout();
     } finally {
       router.replace("/");
     }
-  }, [router]);
+  }, [router, transition]);
 
   return { user, error, retry: load, logout };
 }

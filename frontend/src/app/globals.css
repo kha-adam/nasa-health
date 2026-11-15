@@ -540,3 +540,109 @@ h3 {
 .ruler:focus-visible::-moz-range-thumb {
   box-shadow: 0 0 0 4px rgb(36 91 203 / 0.25);
 }
+
+/*
+ * BLUE login/logout transitions (components/BlueTransitionLayer.tsx).
+ * The real octopus icons are hidden with visibility only (their place in the layout is
+ * kept) while the identical travelling copy stands in for them.
+ */
+html[data-blue-hide~="login-title"] [data-blue-anchor="login-title"],
+html[data-blue-hide~="talk-to-blue"] [data-blue-anchor="talk-to-blue"] {
+  visibility: hidden;
+}
+/* Above everything, including the Talk to Blue button; blocks clicks during the film.
+   No opacity, filter or mask here: the blur layer must see the page beneath. */
+.blue-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.blue-transition[hidden] {
+  display: none;
+}
+.blue-transition-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+/* The login wave, pre-blurred (as seen through the login glass panel). */
+.blue-transition-wave {
+  background:
+    linear-gradient(180deg, rgb(24 72 170 / 0.55) 0%, rgb(36 91 203 / 0.18) 45%, rgb(10 40 120 / 0.35) 100%) fixed,
+    url("/brand/fluid-wave-glass.webp") center / cover fixed;
+}
+/* The dashboard background (same gradient as body). */
+.blue-transition-app {
+  background: linear-gradient(180deg, #e8f7ff 0%, #f4faff 20%, #ffffff 46%, #f6fbff 76%, #e8f7ff 100%) fixed;
+}
+.blue-transition-blur {
+  opacity: 1;
+}
+.blue-transition-ghost {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.blue-transition-ghost > * {
+  pointer-events: none;
+}
+/* The clip, scaled from a 512 px box around its centre (= centre of the octopus image). */
+.blue-transition-actor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 512px;
+  height: 512px;
+  /* Tailwind's preflight caps videos at 100% of their container: on phones that would
+     shrink this box and move its centre. */
+  max-width: none;
+  max-height: none;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  pointer-events: none;
+  background: transparent;
+}
+/* The original BlueOctopus at rest, for the first and last poses. */
+.blue-transition-cap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.blue-transition-cap svg {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+.blue-transition-cap * {
+  animation: none !important;
+  transition: none !important;
+}
+.blue-transition-status {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.85);
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--color-ink);
+}
+.blue-transition-recovery {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(420px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  padding: 24px;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* A short opacity fade replaces the film; keep it (the global rule above shortens transitions). */
+  html .blue-transition > .blue-transition-layer {
+    transition-duration: 280ms !important;
+  }
+}

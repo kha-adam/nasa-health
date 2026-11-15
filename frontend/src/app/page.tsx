@@ -6,6 +6,7 @@ import { Loader2, Lock, ShieldCheck } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { homeFor } from "@/lib/session";
 import BlueOctopus from "@/components/BlueOctopus";
+import { useBlueTransition } from "@/components/BlueTransitionLayer";
 
 // Opt-in for hackathon demos only: lists the public demo accounts on the login screen.
 const SHOW_DEMO_ACCOUNTS = process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === "1";
@@ -42,6 +43,7 @@ function isLandscape(): boolean {
 
 export default function LoginPage() {
   const router = useRouter();
+  const transition = useBlueTransition();
   const [checking, setChecking] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -99,7 +101,10 @@ export default function LoginPage() {
     setError(null);
     try {
       const user = await api.login(username.trim(), password);
-      router.replace(homeFor(user));
+      // Sign-in confirmed: BLUE flies to its Talk to Blue button (astronauts) while the home
+      // screen opens beneath. The form keeps its loading state until the page changes.
+      if (transition) transition.login(homeFor(user), { toTalkToBlue: user.role === "astronaut" });
+      else router.replace(homeFor(user));
     } catch (err) {
       setPassword("");
       if (err instanceof ApiError && (err.status === 401 || err.status === 429)) setError(err.message);
@@ -138,6 +143,7 @@ export default function LoginPage() {
             <div ref={column} className="flex w-full flex-col items-center">
               <p
                 aria-hidden
+                data-blue-reveal="title"
                 className={`flex flex-wrap items-center justify-center gap-x-3 text-center font-display font-light leading-[1.05] tracking-[-0.03em] text-white [text-shadow:0_2px_14px_rgb(10_40_120/0.35)] ${
                   landscape ? "mb-10 text-[76px]" : "mb-8 text-[40px] sm:mb-10 sm:text-[64px] lg:text-[76px]"
                 }`}
@@ -148,14 +154,15 @@ export default function LoginPage() {
                     frame of the octopus animation). */}
                 <span className="relative inline-flex">
                   <span className="pointer-events-none absolute inset-x-[6%] -bottom-[6%] h-[42%] rounded-full bg-[radial-gradient(closest-side,rgb(2_20_60/0.38),rgb(2_20_60/0))]" />
-                  <span className="relative inline-flex">
+                  {/* Start and end point of the login/logout films (BlueTransitionLayer). */}
+                  <span className="relative inline-flex" data-blue-anchor="login-title">
                     <BlueOctopus mood="idle" size={landscape ? 120 : 76} />
                   </span>
                 </span>
                 <span>Crew Health</span>
               </p>
 
-              <div className="w-full max-w-[420px] rounded-[28px] border border-white/60 bg-white p-6 shadow-[0_16px_36px_rgb(0_32_72/0.25)] sm:p-8">
+              <div data-blue-reveal="form" className="w-full max-w-[420px] rounded-[28px] border border-white/60 bg-white p-6 shadow-[0_16px_36px_rgb(0_32_72/0.25)] sm:p-8">
                 <div className="mb-6">
                   <h1 className="text-[28px] font-normal leading-tight tracking-[-0.02em] text-ink">Sign in</h1>
                 </div>

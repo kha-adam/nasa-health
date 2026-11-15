@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
+import BlueTransitionLayer from "@/components/BlueTransitionLayer";
 
 // Same families as the SphereAI reference (Manrope headings, Inter interface), both
 // SIL Open Font License, self-hosted at build time by next/font.
@@ -25,7 +26,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${manrope.variable}`}>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+      <body className="min-h-screen font-sans antialiased">
+        {/* Persistent above the router: the login/logout films survive the route change. */}
+        <BlueTransitionLayer>{children}</BlueTransitionLayer>
+      </body>
     </html>
   );
 }
