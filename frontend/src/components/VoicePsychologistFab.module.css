@@ -13,7 +13,7 @@
 .dialog[open] { display: flex; flex-direction: column; animation: enter .2s ease-out; }
 /* Light backdrop: the readings and the body stay readable while the log is open. */
 .dialog::backdrop { background: rgb(12 40 90 / .16); }
-.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 22px; color: #fff; background: linear-gradient(110deg, rgb(20 58 158 / .9) 0%, rgb(36 91 203 / .72) 55%, rgb(36 91 203 / .45) 100%), url("/brand/blue-matter.webp") center / cover, #2559c2; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 22px; color: #fff; background: var(--glass-blue-bg); box-shadow: var(--glass-blue-rim); text-shadow: var(--glass-blue-text-shadow); }
 .header h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -.01em; margin: 0; }
 .header p { font-size: 12.5px; color: rgb(255 255 255 / .88); margin: 2px 0 0; }
 .actions { display: flex; gap: 6px; }
@@ -34,7 +34,7 @@
 .wave i:nth-child(3n) { animation-delay: -.5s; }
 .transcript { flex: 1; min-height: 80px; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: #c9d6e1 transparent; }
 .message { max-width: 92%; padding: 10px 14px; border-radius: 18px 18px 18px 6px; border: 1px solid var(--line); background: var(--raised); font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-.user { align-self: flex-end; border-color: transparent; background: linear-gradient(180deg, #2f6bc4 0%, #2356c2 100%); color: #fff; border-radius: 18px 18px 6px 18px; }
+.user { align-self: flex-end; border-color: transparent; background: var(--glass-blue-bg); box-shadow: var(--glass-blue-shadow); text-shadow: var(--glass-blue-text-shadow); color: #fff; border-radius: 18px 18px 6px 18px; }
 .speaker { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
 .user .speaker { color: rgb(255 255 255 / .85); }
 .notice { font-size: 12.5px; line-height: 1.5; color: var(--muted); }

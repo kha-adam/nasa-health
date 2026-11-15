@@ -214,7 +214,7 @@ function ChallengeCard({ board, busy, act }: { board: CrewLifeBoard; busy: boole
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full border text-[11px] ${
                       done
-                        ? "border-transparent bg-[linear-gradient(180deg,#2f6bc4,#2356c2)] text-white"
+                        ? "glass-blue border-transparent text-white"
                         : future
                           ? "border-dashed border-line-strong bg-white text-ink-faint"
                           : "border-line-strong bg-raised text-ink-faint"
@@ -416,7 +416,7 @@ function TitleCard({ title: t, board, busy, act }: { title: TitleStanding; board
                   disabled={busy}
                   onClick={() => void act(() => api.choosePerk(t.perk.code, o))}
                   className={`rounded-full border px-2.5 py-1 text-[12px] transition ${
-                    selected ? "border-transparent bg-[linear-gradient(180deg,#2f6bc4,#2356c2)] text-white" : "border-line bg-white text-ink-soft hover:bg-raised"
+                    selected ? "glass-blue border-transparent text-white" : "border-line bg-white text-ink-soft hover:bg-raised"
                   }`}
                 >
                   {o}
@@ -724,7 +724,7 @@ function PrivacyCard({ board, busy, act }: { board: CrewLifeBoard; busy: boolean
           disabled={busy}
           onClick={() => void act(() => api.setShareInTitles(!on))}
           className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full border transition ${
-            on ? "border-transparent bg-[linear-gradient(180deg,#2f6bc4,#2356c2)]" : "border-line-strong bg-raised"
+            on ? "glass-blue border-transparent" : "border-line-strong bg-raised"
           }`}
         >
           <span

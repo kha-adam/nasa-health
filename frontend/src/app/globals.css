@@ -63,6 +63,31 @@
 
 :root {
   color-scheme: light;
+
+  /*
+   * Blue liquid glass, the material of the login panel, for every blue surface of
+   * the app (mission bar, banners, selected items, round icons, BLUE bubbles).
+   * Layers, top to bottom: a light sheen from the top-left, a pale glass tint, a
+   * blue veil that keeps white text readable (≥ 4.5:1), and the pre-blurred wave
+   * seen through the glass. No live backdrop-filter, so nothing is recomputed
+   * while animations run or the page scrolls.
+   */
+  --glass-blue-bg:
+    radial-gradient(120% 140% at 12% 0%, rgb(255 255 255 / 0.24) 0%, rgb(255 255 255 / 0) 42%),
+    linear-gradient(140deg, rgb(230 245 255 / 0.1) 0%, rgb(160 210 255 / 0.04) 45%, rgb(80 150 220 / 0.06) 100%),
+    /* Clinical blue veil (leaning cyan), light enough to stay airy, deep enough for white text. */
+    linear-gradient(180deg, rgb(14 122 186 / 0.44) 0%, rgb(8 112 176 / 0.5) 100%),
+    /* Semi-transparent wave (65 % opacity), framed on its deep-blue band; no opaque base
+       colour, so the page shows through the glass. */
+    url("/brand/fluid-wave-glass-clear.webp") 50% 92% / 300% auto;
+  /* Light-catching rim (bright top-left, cool bottom-right), inner glow, soft lift. */
+  --glass-blue-rim:
+    inset 1px 1px 0 rgb(255 255 255 / 0.55),
+    inset -1px -1px 0 rgb(190 225 255 / 0.3),
+    inset 0 10px 22px -14px rgb(255 255 255 / 0.55);
+  --glass-blue-shadow: var(--glass-blue-rim), 0 8px 20px -12px rgb(20 60 160 / 0.45);
+  /* The glass is light and see-through: a faint shadow keeps white text crisp on it. */
+  --glass-blue-text-shadow: 0 1px 2px rgb(0 40 90 / 0.45);
 }
 
 html {
@@ -259,10 +284,9 @@ h3 {
   .seg-option[aria-checked="true"],
   .seg-option[aria-selected="true"] {
     color: #ffffff;
-    background: linear-gradient(180deg, #2f6bc4 0%, #2356c2 100%);
-    box-shadow:
-      0 3px 5px rgb(29 90 164 / 0.16),
-      inset 0 1px 1px rgb(255 255 255 / 0.22);
+    background: var(--glass-blue-bg);
+    box-shadow: var(--glass-blue-shadow);
+    text-shadow: var(--glass-blue-text-shadow);
   }
 
   /* Text field (SphereAI contact form). */
@@ -285,29 +309,37 @@ h3 {
   }
 
   /* Round badge with the cobalt glass gradient (SphereAI feature icon). */
+  /* Round blue icon / avatar disc, in blue liquid glass. */
   .orb-disc {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    border: 1px solid #65cce9;
     border-radius: 999px;
-    background: radial-gradient(80% 90% at 70% 20%, #b3e6f9 0%, #1b719b 38%, #043c75 72%, #246ca3 100%);
+    background: var(--glass-blue-bg);
     color: #ffffff;
     box-shadow:
-      0 7px 14px rgb(12 71 109 / 0.3),
-      inset 0 1px 3px rgb(255 255 255 / 0.7);
-    text-shadow: 0 1px 2px rgb(2 30 60 / 0.55);
+      var(--glass-blue-rim),
+      0 7px 14px -6px rgb(20 60 160 / 0.45);
+    text-shadow: 0 1px 2px rgb(2 30 60 / 0.45);
   }
 
   /* Cobalt mission band (top bar). */
+  /* Mission bar, in blue liquid glass. */
   .topbar {
-    background:
-      radial-gradient(120% 140% at 100% 0%, rgb(114 249 255 / 0.18) 0%, rgb(114 249 255 / 0) 42%),
-      linear-gradient(115deg, #2a63c3 0%, #2559c2 48%, #1d4bae 100%);
+    background: var(--glass-blue-bg);
+    text-shadow: var(--glass-blue-text-shadow);
     box-shadow:
-      0 10px 26px -16px rgb(17 63 150 / 0.65),
-      inset 0 1px 0 rgb(255 255 255 / 0.22);
+      var(--glass-blue-rim),
+      0 10px 26px -16px rgb(17 63 150 / 0.6);
+  }
+
+  /* Any other blue surface (banners, active menu entry, selected pills, switches). */
+  .glass-blue {
+    background: var(--glass-blue-bg);
+    box-shadow: var(--glass-blue-shadow);
+    color: #ffffff;
+    text-shadow: var(--glass-blue-text-shadow);
   }
 
   /* Decorative image envelope (non-clinical spaces only). */
@@ -464,7 +496,7 @@ h3 {
   margin-top: -7px;
   border: 2px solid #ffffff;
   border-radius: 999px;
-  background: linear-gradient(180deg, #2f6bc4, #2356c2);
+  background: var(--glass-blue-bg);
   box-shadow: 0 2px 6px rgb(17 63 150 / 0.4);
 }
 .ruler::-moz-range-thumb {
@@ -472,7 +504,7 @@ h3 {
   height: 14px;
   border: 2px solid #ffffff;
   border-radius: 999px;
-  background: linear-gradient(180deg, #2f6bc4, #2356c2);
+  background: var(--glass-blue-bg);
   box-shadow: 0 2px 6px rgb(17 63 150 / 0.4);
 }
 .ruler:focus-visible {

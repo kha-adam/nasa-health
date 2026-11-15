@@ -1,4 +1,5 @@
 import { Loader2, RefreshCw, WifiOff } from "lucide-react";
+import BlueOctopus from "./BlueOctopus";
 
 /** Full-page error with a retry button. */
 export function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -27,8 +28,10 @@ export function ErrorScreen({ message, onRetry }: { message: string; onRetry: ()
 export function FullScreenLoader({ label = "Receiving telemetry…" }: { label?: string }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-sky" role="status">
-      {/* eslint-disable-next-line @next/next/no-img-element -- small pre-sized decorative asset */}
-      <img src="/brand/chrome-sphere.webp" alt="" width={56} height={56} className="h-14 w-14 drop-shadow-[0_10px_18px_rgba(12,71,109,0.28)]" />
+      {/* Animated BLUE while the page loads (no CSS filter: it would be recomputed every frame). */}
+      <span aria-hidden className="inline-flex">
+        <BlueOctopus mood="idle" size={96} />
+      </span>
       <span className="flex items-center gap-2">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         <span className="eyebrow">{label}</span>

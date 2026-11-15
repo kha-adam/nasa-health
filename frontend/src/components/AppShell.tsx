@@ -60,12 +60,12 @@ function NavEntry({ item, active, compact }: { item: NavItem; active: boolean; c
   const cls = compact
     ? `flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition ${
         active
-          ? "bg-[linear-gradient(180deg,#2f6bc4,#2356c2)] text-white shadow-[0_3px_5px_rgb(29_90_164/0.18)]"
+          ? "glass-blue text-white"
           : "border border-line bg-white text-ink-soft hover:bg-raised hover:text-ink"
       }`
     : `group relative flex w-full flex-col items-center gap-1 rounded-[18px] py-2.5 text-[11px] font-medium transition ${
         active
-          ? "bg-[linear-gradient(180deg,#2f6bc4,#2356c2)] text-white shadow-[0_6px_14px_-6px_rgb(29_90_164/0.6),inset_0_1px_1px_rgb(255_255_255/0.22)]"
+          ? "glass-blue text-white"
           : "text-ink-soft hover:bg-raised hover:text-ink"
       }`;
   const body = (

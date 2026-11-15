@@ -75,7 +75,7 @@ export default function MentalReportsPanel({ reports, onSimulateEarthReply, fres
                   <span className="min-w-0">
                     <span className="line-clamp-2 text-[13.5px] font-medium leading-snug text-ink">
                       {fresh && (
-                        <span className="num mr-1.5 rounded-full bg-sky px-1.5 py-px align-[1px] text-[10px] font-semibold text-white">NEW</span>
+                        <span className="glass-blue num mr-1.5 rounded-full px-1.5 py-px align-[1px] text-[10px] font-semibold text-white">NEW</span>
                       )}
                       {r.headline}
                     </span>
