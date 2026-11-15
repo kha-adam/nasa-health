@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 """Offline ETL for Project BLUE: ASTRA telemetry CSV -> backend seed files.
 
-Input : data/source/astra_donnees_etendues.csv
-        (run scripts/expand_dataset.py first; it extends the original
-        data/source/astra_donnees_simulees.csv back to mission day 1)
+Input : data/source/astra_donnees_enrichies_nasa.csv — the single source.
+        4 crew, mission days 1-150, 15-minute cadence. Its first 37 columns
+        are the ASTRA telemetry (days 120-150 simulated, days 1-119 extended);
+        16 more columns add NASA context and personal 7-day baselines:
+          nasa_sleep_reference_*      NASA in-flight sleep average (NTRS 20230003916)
+          nasa_behavior_reference_ids NASA behavioural-health sources
+          sleep_trailing_7d_mean_h    7-night sleep average        -> field sleep_7d_avg_h
+          *_previous_7d_mean_*        mean of the 7 days before    -> profile.baselines
+        The per-15-minute deltas (hrv_/speech_rate_delta_vs_previous_7d_pct)
+        compare one sample with a 7-day mean of daily means, so they mostly
+        track activity (about -60 % during exercise, +20 % asleep); they are
+        checked but not used. Baselines compare daily values instead.
+        Every derived column is recomputed from the telemetry and checked
+        before anything is written; a mismatch stops the build.
 Output: backend/data/astronauts.json          3 canonical profiles
         backend/data/telemetry/<id>.json      per-astronaut history, columnar:
             raw    — 15-minute samples, last 24 h
@@ -20,7 +31,7 @@ derived from the CSV here, once. The API never parses CSV at runtime.
 
 Usage:
     python scripts/build_mock_data.py            # write the seed files
-    python scripts/build_mock_data.py --check    # validate committed seeds
+    python scripts/build_mock_data.py --check    # validate the source CSV and the committed seeds
 """
 
 from __future__ import annotations
@@ -37,10 +48,43 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 
-from core.metrics import BY_KEY, CATALOG, CSV_FIELDS, FIELDS, metric_status, worst  # noqa: E402
+from core.metrics import (  # noqa: E402
+    BASELINE_COLUMNS,
+    BASELINE_METHOD,
+    BY_KEY,
+    CATALOG,
+    CSV_FIELDS,
+    FIELDS,
+    REFERENCES,
+    SLEEP_REFERENCE,
+    SLEEP_REFERENCE_ID,
+    metric_status,
+    worst,
+)
 from schemas import AstronautProfile  # noqa: E402
 
-SRC = ROOT / "data" / "source" / "astra_donnees_etendues.csv"
+SRC = ROOT / "data" / "source" / "astra_donnees_enrichies_nasa.csv"
+
+ROW_COLUMNS = ["timestamp_utc", "mission_day", "crew_id", "activity_state", "injected_event", "ground_truth_label"]
+# Enrichment columns that hold one value per crew member and mission day.
+DAILY_COLUMNS = [
+    "sleep_delta_vs_nasa_inflight_mean_h",
+    "sleep_trailing_7d_nights",
+    "sleep_previous_7d_mean_h",
+    "sleep_delta_vs_previous_7d_h",
+    "hrv_previous_7d_mean_ms",
+    "hrv_previous_7d_days",
+    "speech_rate_previous_7d_mean_wpm",
+    "speech_rate_previous_7d_days",
+]
+REFERENCE_COLUMNS = [
+    "nasa_sleep_reference_id",
+    "nasa_sleep_reference_mean_h",
+    "nasa_sleep_reference_sd_h",
+    "nasa_behavior_reference_ids",
+]
+SAMPLE_DELTA_COLUMNS = ["hrv_delta_vs_previous_7d_pct", "speech_rate_delta_vs_previous_7d_pct"]
+REQUIRED_COLUMNS = [*ROW_COLUMNS, *CSV_FIELDS, *DAILY_COLUMNS, *REFERENCE_COLUMNS, *SAMPLE_DELTA_COLUMNS]
 OUT_PROFILES = ROOT / "backend" / "data" / "astronauts.json"
 OUT_TELEMETRY = ROOT / "backend" / "data" / "telemetry"
 
@@ -76,13 +120,30 @@ def iso(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def load() -> dict[str, list[dict]]:
+def _rel(path: Path) -> str:
+    return str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)
+
+
+def _num(s: str) -> float | None:
+    return float(s) if s != "" else None
+
+
+def load() -> tuple[dict[str, list[dict]], dict[str, dict[int, dict]], set[tuple[str, ...]]]:
+    """Rows per crew member, daily enrichment per crew member and day, distinct NASA reference sets."""
     if not SRC.exists():
-        raise SystemExit(f"{SRC.relative_to(ROOT)} not found — run scripts/expand_dataset.py first")
+        raise SystemExit(f"{_rel(SRC)} not found")
     by_crew: dict[str, list[dict]] = defaultdict(list)
-    with SRC.open(newline="") as fh:
-        for raw in csv.DictReader(fh):
-            if raw["crew_id"] not in CREW:
+    by_day: dict[str, dict[int, dict]] = defaultdict(dict)
+    refs: set[tuple[str, ...]] = set()
+    with SRC.open(newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        missing = [c for c in REQUIRED_COLUMNS if c not in (reader.fieldnames or [])]
+        if missing:
+            raise SystemExit(f"{_rel(SRC)} is missing columns: {', '.join(missing)}")
+        for raw in reader:
+            refs.add(tuple(raw[c] for c in REFERENCE_COLUMNS))
+            crew = raw["crew_id"]
+            if crew not in CREW:
                 continue
             row = {
                 "ts": parse_ts(raw["timestamp_utc"]),
@@ -90,13 +151,95 @@ def load() -> dict[str, list[dict]]:
                 "activity": raw["activity_state"],
                 "event": raw["injected_event"],
                 "label": raw["ground_truth_label"],
+                "sample_delta": {c: _num(raw[c]) for c in SAMPLE_DELTA_COLUMNS},
             }
             for col, field in CSV_FIELDS.items():
-                row[field] = float(raw[col]) if raw[col] != "" else None
-            by_crew[raw["crew_id"]].append(row)
+                row[field] = _num(raw[col])
+            by_crew[crew].append(row)
+            daily = {c: _num(raw[c]) for c in DAILY_COLUMNS}
+            if by_day[crew].setdefault(row["day"], daily) != daily:
+                raise SystemExit(f"{crew} day {row['day']}: daily enrichment columns change within the day")
+    absent = [c for c in CREW if not by_crew.get(c)]
+    if absent:
+        raise SystemExit(f"{_rel(SRC)} has no rows for {', '.join(absent)}")
     for rows in by_crew.values():
         rows.sort(key=lambda r: r["ts"])
-    return by_crew
+    return by_crew, by_day, refs
+
+
+def check_references(refs: set[tuple[str, ...]]) -> list[str]:
+    """The CSV must cite one reference set, matching core/metrics.py. Returns the behaviour source ids."""
+    if len(refs) != 1:
+        raise SystemExit(f"expected one set of NASA references in the CSV, found {len(refs)}: {sorted(refs)}")
+    sleep_id, mean, sd, behaviour = next(iter(refs))
+    if (sleep_id, float(mean), float(sd)) != (SLEEP_REFERENCE_ID, SLEEP_REFERENCE.mean, SLEEP_REFERENCE.sd):
+        raise SystemExit(
+            f"CSV sleep reference {sleep_id} {mean} ± {sd} h differs from core/metrics.py "
+            f"({SLEEP_REFERENCE_ID} {SLEEP_REFERENCE.mean} ± {SLEEP_REFERENCE.sd} h)"
+        )
+    ids = [i for i in behaviour.split(";") if i]
+    unknown = [i for i in [sleep_id, *ids] if i not in REFERENCES]
+    if unknown:
+        raise SystemExit(f"CSV cites unknown NASA sources {unknown}: add them to core/metrics.py REFERENCES")
+    return ids
+
+
+def _close(a: float | None, b: float | None, tol: float) -> bool:
+    return (a is None and b is None) or (a is not None and b is not None and abs(a - b) <= tol)
+
+
+def check_enrichment(crew: str, rows: list[dict], days: dict[int, dict]) -> None:
+    """Recompute every derived column from the telemetry; stop the build on any mismatch."""
+    tol = 1e-3  # the CSV keeps 4 decimals (2 for the NASA delta)
+    sleep = {r["day"]: r["sleep_hours"] for r in rows}
+    trailing = {r["day"]: r["sleep_7d_avg_h"] for r in rows}
+    daily = {"hrv": daily_means(rows, "hrv_rmssd_ms"), "speech": daily_means(rows, "speech_rate_wpm")}
+
+    def window_mean(series: dict[int, float | None], first: int, last: int) -> tuple[float | None, int]:
+        vals = [series[k] for k in range(first, last + 1) if series.get(k) is not None]
+        return (st.mean(vals) if len(vals) == 7 else None), len(vals)
+
+    problems: list[str] = []
+    for d, e in sorted(days.items()):
+        s_prev, _ = window_mean(sleep, d - 7, d - 1)
+        s_trail, s_nights = window_mean(sleep, d - 6, d)
+        h_prev, h_n = window_mean(daily["hrv"], d - 7, d - 1)
+        sp_prev, sp_n = window_mean(daily["speech"], d - 7, d - 1)
+        expected = {
+            "sleep_delta_vs_nasa_inflight_mean_h": (None if sleep[d] is None else sleep[d] - SLEEP_REFERENCE.mean, 0.006),
+            "sleep_trailing_7d_nights": (s_nights, 0),
+            "sleep_previous_7d_mean_h": (s_prev, tol),
+            "sleep_delta_vs_previous_7d_h": (None if None in (s_prev, sleep[d]) else sleep[d] - s_prev, tol),
+            "hrv_previous_7d_mean_ms": (h_prev, tol),
+            "hrv_previous_7d_days": (h_n, 0),
+            "speech_rate_previous_7d_mean_wpm": (sp_prev, tol),
+            "speech_rate_previous_7d_days": (sp_n, 0),
+        }
+        for col, (want, t) in expected.items():
+            if not _close(want, e[col], t):
+                problems.append(f"day {d} {col}: CSV {e[col]} vs recomputed {want}")
+        if not _close(s_trail, trailing[d], tol):
+            problems.append(f"day {d} sleep_trailing_7d_mean_h: CSV {trailing[d]} vs recomputed {s_trail}")
+    for r in rows:
+        e = days[r["day"]]
+        for col, value, prev in (
+            ("hrv_delta_vs_previous_7d_pct", r["hrv_rmssd_ms"], e["hrv_previous_7d_mean_ms"]),
+            ("speech_rate_delta_vs_previous_7d_pct", r["speech_rate_wpm"], e["speech_rate_previous_7d_mean_wpm"]),
+        ):
+            want = None if value is None or not prev else 100 * (value - prev) / prev
+            if not _close(want, r["sample_delta"][col], tol):
+                problems.append(f"{iso(r['ts'])} {col}: CSV {r['sample_delta'][col]} vs recomputed {want}")
+    if problems:
+        shown = "\n  ".join(problems[:8])
+        raise SystemExit(f"{crew}: {len(problems)} enrichment values disagree with the telemetry:\n  {shown}")
+
+
+def load_checked() -> tuple[dict[str, list[dict]], dict[str, dict[int, dict]], list[str]]:
+    by_crew, by_day, refs = load()
+    behaviour_ids = check_references(refs)
+    for crew, rows in by_crew.items():
+        check_enrichment(crew, rows, by_day[crew])
+    return by_crew, by_day, behaviour_ids
 
 
 # --------------------------------------------------------------------------
@@ -198,6 +341,37 @@ def latest(rows: list[dict]) -> dict[str, float | None]:
 def mean_where(rows: list[dict], field: str, pred) -> float | None:
     vals = [r[field] for r in rows if pred(r) and r[field] is not None]
     return st.mean(vals) if vals else None
+
+
+def baselines(rows: list[dict], days: dict[int, dict], behaviour_ids: list[str]) -> dict:
+    """Last mission day against the astronaut's own previous 7 days (means taken from the CSV)."""
+    today = rows[-1]["day"]
+    items = []
+    for key, column in BASELINE_COLUMNS.items():
+        metric = BY_KEY[key]
+        field = metric.series[0].field
+        per_day = daily_means(rows, field)
+        if metric.cadence == "continuous":
+            now = per_day.get(today)  # the day's mean: single samples swing with activity
+        else:
+            now = next((r[field] for r in reversed(rows) if r["day"] == today and r[field] is not None), None)
+        prev = days[today][column]
+        delta = None if now is None or prev is None else now - prev
+        items.append({
+            "metric": key,
+            "field": field,
+            "today": r2(now),
+            "previous_7d_mean": r2(prev),
+            "previous_7d_days": sum(1 for d in range(today - 7, today) if d in per_day),
+            "delta": r2(delta),
+            "delta_pct": r2(100 * delta / prev, 1) if delta is not None and prev else None,
+        })
+    return {
+        "mission_day": today,
+        "method": BASELINE_METHOD,
+        "items": items,
+        "references": [REFERENCES[i].model_dump() for i in behaviour_ids],
+    }
 
 
 # --------------------------------------------------------------------------
@@ -321,7 +495,9 @@ def fmt_delay(minutes: float) -> str:
     return f"{m}m {round((minutes - m) * 60):02d}s"
 
 
-def build_profile(crew: str, rows: list[dict], cabin_events: list[dict]) -> tuple[dict, dict]:
+def build_profile(
+    crew: str, rows: list[dict], cabin_events: list[dict], days: dict[int, dict], behaviour_ids: list[str]
+) -> tuple[dict, dict]:
     meta = CREW[crew]
     aid = meta["id"]
     now = rows[-1]["ts"]
@@ -418,6 +594,7 @@ def build_profile(crew: str, rows: list[dict], cabin_events: list[dict]) -> tupl
         "body_highlights": {"physical": physical, "mental": mental},
         "events": [serialize_event(e, aid, i) for i, e in enumerate(events)],
         "mental_reports": seed_reports(aid, rows, crew_events, cabin_events),
+        "baselines": baselines(rows, days, behaviour_ids),
     }
     return profile, telemetry(rows)
 
@@ -537,6 +714,9 @@ def main() -> None:
     parser.add_argument("--check", action="store_true", help="validate the committed seed only")
     args = parser.parse_args()
 
+    by_crew, by_day, behaviour_ids = load_checked()
+    print(f"[ok] {_rel(SRC)}: columns, NASA references and derived baselines check out")
+
     if args.check:
         validate(json.loads(OUT_PROFILES.read_text()))
         for c in CREW.values():
@@ -544,12 +724,11 @@ def main() -> None:
         print(f"[ok] {OUT_PROFILES.relative_to(ROOT)} and telemetry match schemas.py")
         return
 
-    by_crew = load()
     cabin = cabin_events_from(by_crew)
     profiles = []
     OUT_TELEMETRY.mkdir(parents=True, exist_ok=True)
     for crew in CREW:
-        profile, tele = build_profile(crew, by_crew[crew], cabin)
+        profile, tele = build_profile(crew, by_crew[crew], cabin, by_day[crew], behaviour_ids)
         profiles.append(profile)
         (OUT_TELEMETRY / f"{profile['id']}.json").write_text(json.dumps(tele, separators=(",", ":")) + "\n")
         print(f"[info] {profile['id']}: {profile['status_tag']} — {profile['status_summary']}")

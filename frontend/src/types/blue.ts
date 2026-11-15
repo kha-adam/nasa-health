@@ -50,6 +50,22 @@ export interface MetricSeries {
   thresholds: Thresholds | null;
 }
 
+/** Published NASA source cited by the enriched ASTRA dataset. */
+export interface SourceReference {
+  id: string;
+  title: string;
+  url: string;
+}
+
+/** External population average drawn next to a metric: context, not an alert band. */
+export interface MetricReference {
+  label: string;
+  mean: number;
+  sd: number | null;
+  detail: string;
+  source: SourceReference;
+}
+
 export interface MetricDefinition {
   key: string;
   label: string;
@@ -60,6 +76,7 @@ export interface MetricDefinition {
   decimals: number;
   description: string;
   series: MetricSeries[];
+  reference: MetricReference | null;
 }
 
 export interface CurrentVitals {
@@ -77,6 +94,7 @@ export interface CurrentVitals {
   blink_rate_per_min: number | null;
   cortisol_nmol_l: number | null;
   sleep_hours: number | null;
+  sleep_7d_avg_h: number | null;
   sleep_efficiency_pct: number | null;
   sleep_awakenings: number | null;
   body_mass_kg: number | null;
@@ -130,6 +148,24 @@ export interface MentalHealthReport {
   earth_psychologist_directive: string | null;
 }
 
+/** One reading of the last mission day against the astronaut's own previous 7 days. */
+export interface BaselineComparison {
+  metric: string;
+  field: string;
+  today: number | null;
+  previous_7d_mean: number | null;
+  previous_7d_days: number;
+  delta: number | null;
+  delta_pct: number | null;
+}
+
+export interface PersonalBaselines {
+  mission_day: number;
+  method: string;
+  items: BaselineComparison[];
+  references: SourceReference[];
+}
+
 export interface AstronautProfile {
   id: AstronautId;
   name: string;
@@ -145,6 +181,7 @@ export interface AstronautProfile {
   body_highlights: BodyHighlights;
   events: MissionEvent[];
   mental_reports: MentalHealthReport[];
+  baselines: PersonalBaselines | null;
   mental_redacted: boolean;
 }
 

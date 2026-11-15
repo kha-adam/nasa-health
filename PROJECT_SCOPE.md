@@ -33,7 +33,7 @@ Because deep-space communication latency reaches **up to 20+ minutes one-way**, 
 
 ### Step 1: Sign-In & the 3 Canonical Crew Profiles
 
-The app opens on a login screen. Astronauts land on their own dashboard; the flight surgeon lands on a crew overview. All data comes from the ASTRA simulated mission telemetry (`data/source/astra_donnees_simulees.csv`, extended back to mission day 1), crew members C1–C3:
+The app opens on a login screen. Astronauts land on their own dashboard; the flight surgeon lands on a crew overview. All data comes from one file, the ASTRA simulated mission telemetry enriched with NASA references (`data/source/astra_donnees_enrichies_nasa.csv`, mission days 1–150), crew members C1–C3:
 
 1. **Commander — Cmdr. Elena Vance (`astro-vance` | Nominal Baseline):**
    * **Data story:** Steady readings throughout, including the cabin CO₂ scrubber fault on days 138–144.
@@ -70,8 +70,11 @@ The app opens on a login screen. Astronauts land on their own dashboard; the fli
 
 ## 3. Data Strategy & Static Seed Rule
 
-* **Source:** `data/source/astra_donnees_simulees.csv` — ASTRA simulated mission telemetry (4 crew, mission days 120–150, 15-minute cadence, 37 columns including vitals, HRV, glucose, voice stress, salivary cortisol, sleep, cabin environment, radiation and labelled events).
-* **Expansion:** `scripts/expand_dataset.py` extends it back to mission day 1 (`astra_donnees_etendues.csv`) by resampling the crew's own nominal days with day-to-day drift, keeping cabin data shared across the crew and rebuilding cumulative radiation, Earth delay and weekly body mass for continuity. Original rows are kept verbatim; synthetic rows are tagged `simule_etendu`.
+* **Source (single input):** `data/source/astra_donnees_enrichies_nasa.csv` — 4 crew, mission days 1–150, 15-minute cadence, 57,600 rows, 53 columns.
+  * **Telemetry (37 columns):** vitals, HRV, glucose, voice stress, salivary cortisol, sleep, cabin environment, radiation and labelled events. Days 120–150 are the original ASTRA simulation (`data_source=simule`); days 1–119 were extended by `scripts/expand_dataset.py` (resampled nominal days with day-to-day drift, `simule_etendu`). These columns were checked row for row against the earlier CSVs before those were removed.
+  * **Enrichment (16 columns):** the NASA in-flight sleep average (7.33 ± 1.16 h, NTRS 20230003916: actigraphy of 19 ISS crewmembers, 2019–2022), NASA behavioural-health sources (HRR tasks 1623 and 1164, NTRS 20100026549), a 7-night sleep average and each astronaut's previous-7-day means for sleep, HRV and speech rate. All derived values are recomputed and checked by the ETL; the per-15-minute deltas are not used because they mostly track activity (≈ −60 % during exercise, +20 % asleep).
+  * The former `astra_donnees_simulees.csv` (days 120–150) and `astra_donnees_etendues.csv` (days 1–150) were removed; they remain in the git history.
+* **Personal baselines:** the profile compares the last mission day with the astronaut's own previous 7 days (sleep, HRV, speech rate), and the sleep chart shows the NASA in-flight average. Both are context only; they never change a status. The whole simulated crew sleeps below the NASA average (6.3–6.8 h on average).
 * **Static seed:** `scripts/build_mock_data.py` derives everything the app shows — current values, status tags, body highlights, mission events, seeded reports, and history at three resolutions — into `backend/data/astronauts.json` and `backend/data/telemetry/*.json`. The API never parses CSV at runtime.
 * **Calibration references (future):** PhysioNet `mimic-iv-demo` / `wearable-device-dataset`, WESAD, the OSF MAST cortisol tables, NASA OSDR and RAVDESS remain the approved open-access sources for validating ranges and BLUE's tone.
 

@@ -156,6 +156,37 @@ def test_metric_history_ranges(rng, resolution, count):
     assert body["stats"][0]["field"] == "spo2_percent"
 
 
+def test_sleep_carries_the_nasa_reference_and_7_night_average():
+    c = client_for("chen")
+    sleep = next(m for m in c.get("/api/metrics").json() if m["key"] == "sleep_duration")
+    ref = sleep["reference"]
+    assert (ref["mean"], ref["sd"], ref["source"]["id"]) == (7.33, 1.16, "NTRS 20230003916")
+    assert [s["field"] for s in sleep["series"]] == ["sleep_hours", "sleep_7d_avg_h"]
+    body = c.get("/api/astronauts/astro-chen/metrics/sleep_duration?range=all").json()
+    trailing = [p["values"]["sleep_7d_avg_h"] for p in body["points"]]
+    assert trailing[:6] == [None] * 6 and all(v is not None for v in trailing[6:])
+    # The 7-night average has no alert band: it never changes a status.
+    assert body["stats"][1]["pct_nominal"] is None
+
+
+def test_baselines_compare_the_last_day_with_the_previous_week():
+    chen = client_for("chen").get("/api/astronauts/astro-chen").json()["baselines"]
+    assert chen["mission_day"] == 150
+    items = {b["metric"]: b for b in chen["items"]}
+    assert set(items) == {"sleep_duration", "hrv", "speech_rate"}
+    assert all(b["previous_7d_days"] == 7 for b in items.values())
+    # Recovery after the drift: HRV and sleep back above the previous week.
+    assert items["hrv"]["delta_pct"] > 10 and items["sleep_duration"]["delta"] > 1
+    assert {r["id"] for r in chen["references"]} == {"HRR task 1623", "HRR task 1164", "NTRS 20100026549"}
+    vance = client_for("vance").get("/api/astronauts/astro-vance").json()["baselines"]
+    assert all(abs(b["delta_pct"]) < 10 for b in vance["items"])
+
+
+def test_flight_surgeon_baselines_omit_private_signals():
+    for p in client_for("surgeon").get("/api/astronauts").json():
+        assert {b["metric"] for b in p["baselines"]["items"]} == {"sleep_duration", "hrv"}
+
+
 def test_metric_history_includes_events_in_range():
     body = client_for("lin").get("/api/astronauts/astro-lin/metrics/spo2?range=7d").json()
     assert any(e["code"] == "ACUTE_DIZZINESS_BREATHLESSNESS" for e in body["events"])

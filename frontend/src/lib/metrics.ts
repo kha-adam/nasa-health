@@ -142,6 +142,12 @@ export function formatNumber(value: number | null | undefined, decimals = 0): st
   return value.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
+/** Signed difference with a true minus sign, e.g. "+1.2" or "−0.4". */
+export function formatSigned(value: number | null | undefined, decimals = 0): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  return `${value >= 0 ? "+" : "−"}${formatNumber(Math.abs(value), decimals)}`;
+}
+
 /** Headline value of a metric: BP shows "sys/dia", others their first series. */
 export function metricValue(metric: MetricDefinition, vitals: CurrentVitals): string {
   const v = vitals as unknown as Record<string, number | null>;

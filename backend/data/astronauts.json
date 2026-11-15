@@ -24,6 +24,7 @@
       "blink_rate_per_min": 18.1,
       "cortisol_nmol_l": 16.0,
       "sleep_hours": 6.81,
+      "sleep_7d_avg_h": 6.5686,
       "sleep_efficiency_pct": 92.6,
       "sleep_awakenings": 2.0,
       "body_mass_kg": 77.96,
@@ -143,7 +144,57 @@
         "earth_status": "REVIEWED_BY_EARTH",
         "earth_psychologist_directive": "No intervention required. Keep the current sleep schedule and weekly crew debriefs; report any return of headaches to the crew medical officer."
       }
-    ]
+    ],
+    "baselines": {
+      "mission_day": 150,
+      "method": "Each value is compared with the astronaut's own mean over the 7 mission days before it (daily means for continuous signals, last night's total for sleep). Individual baselines follow NASA behavioural-health monitoring practice; a change is context, not a diagnosis.",
+      "items": [
+        {
+          "metric": "sleep_duration",
+          "field": "sleep_hours",
+          "today": 6.81,
+          "previous_7d_mean": 6.46,
+          "previous_7d_days": 7,
+          "delta": 0.35,
+          "delta_pct": 5.4
+        },
+        {
+          "metric": "hrv",
+          "field": "hrv_rmssd_ms",
+          "today": 52.8,
+          "previous_7d_mean": 55.17,
+          "previous_7d_days": 7,
+          "delta": -2.37,
+          "delta_pct": -4.3
+        },
+        {
+          "metric": "speech_rate",
+          "field": "speech_rate_wpm",
+          "today": 140.14,
+          "previous_7d_mean": 139.42,
+          "previous_7d_days": 7,
+          "delta": 0.72,
+          "delta_pct": 0.5
+        }
+      ],
+      "references": [
+        {
+          "id": "HRR task 1623",
+          "title": "Standardized Behavioral Measures for Detecting Behavioral Health Risks during Exploration Missions",
+          "url": "https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1623"
+        },
+        {
+          "id": "HRR task 1164",
+          "title": "Development and testing of biomarkers to determine individual astronauts' vulnerabilities to behavioral health disruptions",
+          "url": "https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1164"
+        },
+        {
+          "id": "NTRS 20100026549",
+          "title": "Behavioral Issues Associated With Long Duration Space Expeditions: Review and Analysis of Astronaut Journals (2010)",
+          "url": "https://ntrs.nasa.gov/citations/20100026549"
+        }
+      ]
+    }
   },
   {
     "id": "astro-chen",
@@ -170,6 +221,7 @@
       "blink_rate_per_min": 17.4,
       "cortisol_nmol_l": 17.4,
       "sleep_hours": 7.13,
+      "sleep_7d_avg_h": 6.1686,
       "sleep_efficiency_pct": 92.4,
       "sleep_awakenings": 1.0,
       "body_mass_kg": 61.08,
@@ -345,7 +397,57 @@
         "earth_status": "REVIEWED_BY_EARTH",
         "earth_psychologist_directive": "Move warm, dim cabin lighting 90 minutes before sleep, stop troubleshooting work after 20:00, and follow up with BLUE in 3 days."
       }
-    ]
+    ],
+    "baselines": {
+      "mission_day": 150,
+      "method": "Each value is compared with the astronaut's own mean over the 7 mission days before it (daily means for continuous signals, last night's total for sleep). Individual baselines follow NASA behavioural-health monitoring practice; a change is context, not a diagnosis.",
+      "items": [
+        {
+          "metric": "sleep_duration",
+          "field": "sleep_hours",
+          "today": 7.13,
+          "previous_7d_mean": 5.96,
+          "previous_7d_days": 7,
+          "delta": 1.17,
+          "delta_pct": 19.7
+        },
+        {
+          "metric": "hrv",
+          "field": "hrv_rmssd_ms",
+          "today": 49.13,
+          "previous_7d_mean": 42.26,
+          "previous_7d_days": 7,
+          "delta": 6.87,
+          "delta_pct": 16.2
+        },
+        {
+          "metric": "speech_rate",
+          "field": "speech_rate_wpm",
+          "today": 151.36,
+          "previous_7d_mean": 144.51,
+          "previous_7d_days": 7,
+          "delta": 6.85,
+          "delta_pct": 4.7
+        }
+      ],
+      "references": [
+        {
+          "id": "HRR task 1623",
+          "title": "Standardized Behavioral Measures for Detecting Behavioral Health Risks during Exploration Missions",
+          "url": "https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1623"
+        },
+        {
+          "id": "HRR task 1164",
+          "title": "Development and testing of biomarkers to determine individual astronauts' vulnerabilities to behavioral health disruptions",
+          "url": "https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1164"
+        },
+        {
+          "id": "NTRS 20100026549",
+          "title": "Behavioral Issues Associated With Long Duration Space Expeditions: Review and Analysis of Astronaut Journals (2010)",
+          "url": "https://ntrs.nasa.gov/citations/20100026549"
+        }
+      ]
+    }
   },
   {
     "id": "astro-lin",
@@ -372,6 +474,7 @@
       "blink_rate_per_min": 13.8,
       "cortisol_nmol_l": 19.9,
       "sleep_hours": 6.23,
+      "sleep_7d_avg_h": 6.1629,
       "sleep_efficiency_pct": 89.8,
       "sleep_awakenings": 1.0,
       "body_mass_kg": 82.5,
@@ -516,6 +619,56 @@
         "earth_status": "QUEUED_FOR_EARTH",
         "earth_psychologist_directive": null
       }
-    ]
+    ],
+    "baselines": {
+      "mission_day": 150,
+      "method": "Each value is compared with the astronaut's own mean over the 7 mission days before it (daily means for continuous signals, last night's total for sleep). Individual baselines follow NASA behavioural-health monitoring practice; a change is context, not a diagnosis.",
+      "items": [
+        {
+          "metric": "sleep_duration",
+          "field": "sleep_hours",
+          "today": 6.23,
+          "previous_7d_mean": 6.17,
+          "previous_7d_days": 7,
+          "delta": 0.06,
+          "delta_pct": 0.9
+        },
+        {
+          "metric": "hrv",
+          "field": "hrv_rmssd_ms",
+          "today": 52.85,
+          "previous_7d_mean": 52.48,
+          "previous_7d_days": 7,
+          "delta": 0.38,
+          "delta_pct": 0.7
+        },
+        {
+          "metric": "speech_rate",
+          "field": "speech_rate_wpm",
+          "today": 131.39,
+          "previous_7d_mean": 130.82,
+          "previous_7d_days": 7,
+          "delta": 0.58,
+          "delta_pct": 0.4
+        }
+      ],
+      "references": [
+        {
+          "id": "HRR task 1623",
+          "title": "Standardized Behavioral Measures for Detecting Behavioral Health Risks during Exploration Missions",
+          "url": "https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1623"
+        },
+        {
+          "id": "HRR task 1164",
+          "title": "Development and testing of biomarkers to determine individual astronauts' vulnerabilities to behavioral health disruptions",
+          "url": "https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1164"
+        },
+        {
+          "id": "NTRS 20100026549",
+          "title": "Behavioral Issues Associated With Long Duration Space Expeditions: Review and Analysis of Astronaut Journals (2010)",
+          "url": "https://ntrs.nasa.gov/citations/20100026549"
+        }
+      ]
+    }
   }
 ]

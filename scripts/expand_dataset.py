@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """Expand the ASTRA simulated telemetry CSV backwards in mission time.
 
+History only — not part of the build. Its output (days 1-150) became the first
+37 columns of data/source/astra_donnees_enrichies_nasa.csv, the single input
+of scripts/build_mock_data.py. Kept to document how days 1-119 were generated.
+Its input and output CSVs were removed from the repository; to re-run it, restore
+the input from git first:
+    git show a464e4d:data/source/astra_donnees_simulees.csv > data/source/astra_donnees_simulees.csv
+
 Input : data/source/astra_donnees_simulees.csv   (mission days 120-150, 4 crew,
         15-minute cadence, 37 columns — kept verbatim in the output)
 Output: data/source/astra_donnees_etendues.csv   (mission days 1-150 by default)

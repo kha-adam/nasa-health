@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Award, CheckCircle2, Lock, MessageSquareText } from "lucide-react";
-import type { AstronautProfile, MetricDefinition } from "@/types/blue";
-import { STATUS_RANK } from "@/lib/metrics";
+import { Award, CheckCircle2, ChevronRight, Lock, MessageSquareText } from "lucide-react";
+import type { AstronautProfile, MetricDefinition, PersonalBaselines } from "@/types/blue";
+import { STATUS_RANK, formatNumber, formatSigned, metricHref } from "@/lib/metrics";
 import { Observation } from "./ObservationsPanel";
 import SourceTag from "./SourceTag";
 
@@ -66,6 +66,10 @@ export default function MindPanel({ profile, catalog, asSurgeon, onOpenLog }: Pr
             )}
           </div>
 
+          {profile.baselines && profile.baselines.items.length > 0 && (
+            <WeekComparison profile={profile} baselines={profile.baselines} catalog={catalog} asSurgeon={asSurgeon} />
+          )}
+
           <div className="border-t border-line px-5 py-5">
             <div className="flex items-center justify-between gap-2">
               <p className="eyebrow">Check-ins with BLUE</p>
@@ -103,5 +107,86 @@ export default function MindPanel({ profile, catalog, asSurgeon, onOpenLog }: Pr
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * The last mission day against the astronaut's own previous 7 days (from the enriched ASTRA
+ * dataset). Signed differences only — no colour or status: a change is context, not an alert.
+ */
+function WeekComparison({
+  profile,
+  baselines,
+  catalog,
+  asSurgeon,
+}: {
+  profile: AstronautProfile;
+  baselines: PersonalBaselines;
+  catalog: MetricDefinition[];
+  asSurgeon: boolean;
+}) {
+  const day = baselines.mission_day;
+  return (
+    <div className="border-t border-line px-5 py-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="eyebrow">Against your previous 7 days</p>
+        <SourceTag kind="computed" origin={`D${day} vs D${day - 7}–D${day - 1}`} />
+      </div>
+      <ul className="mt-2 divide-y divide-line">
+        {baselines.items.map((b) => {
+          const m = catalog.find((x) => x.key === b.metric);
+          if (!m) return null;
+          const dd = m.decimals || 1;
+          return (
+            <li key={b.metric}>
+              <Link
+                href={metricHref(m.key, profile.id, asSurgeon)}
+                className="group flex items-start justify-between gap-3 py-2.5"
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-ink group-hover:text-sky-hover">{m.label}</span>
+                  <span className="num block text-[12px] text-ink-faint">
+                    {b.previous_7d_mean == null ? (
+                      "Not enough history yet"
+                    ) : (
+                      <>
+                        {formatSigned(b.delta, dd)} {m.unit}
+                        {b.delta_pct != null && ` (${formatSigned(b.delta_pct, 1)} %)`} vs{" "}
+                        {formatNumber(b.previous_7d_mean, m.decimals)}
+                      </>
+                    )}
+                    {m.reference && ` · ${m.reference.label} ${formatNumber(m.reference.mean, m.decimals)} ${m.unit}`}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-right">
+                  <span>
+                    <span className="num block text-[15px] font-semibold text-ink">
+                      {formatNumber(b.today, m.decimals)}
+                      <span className="ml-1 font-sans text-[11px] font-normal text-ink-faint">{m.unit}</span>
+                    </span>
+                    <span className="block text-[11px] text-ink-faint">
+                      {m.cadence === "continuous" ? "day average" : "last night"}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 text-ink-faint group-hover:text-sky" aria-hidden />
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-1.5 text-[12px] leading-snug text-ink-faint">
+        Your own week is the reference; a change is context, not a diagnosis. Method:{" "}
+        {baselines.references.map((r, i) => (
+          <span key={r.id}>
+            {i > 0 && " · "}
+            <a href={r.url} target="_blank" rel="noreferrer" title={r.title} className="text-sky hover:text-sky-hover">
+              {r.id}
+            </a>
+          </span>
+        ))}
+        .
+      </p>
+    </div>
   );
 }

@@ -26,7 +26,11 @@ def dashboard_context(profile: AstronautProfile) -> dict:
                 }
             context["metric_history"][metric.key] = summaries
     context["data_scope"] = {
-        "source": "ASTRA simulated mission telemetry; not a live medical device feed",
+        "source": "ASTRA simulated mission telemetry enriched with NASA aggregate references "
+        "(data/source/astra_donnees_enrichies_nasa.csv); not a live medical device feed",
+        "baselines": "baselines compares the last mission day with the astronaut's own mean over the 7 days before. "
+        "The sleep metric's reference is NASA's ISS in-flight average (7.33 ± 1.16 h, NTRS 20230003916), "
+        "a population context rather than a target or a diagnosis; this simulated crew sleeps less on average.",
         "as_of": profile.last_reading_at,
         "freshness": "Snapshot at voice session start; no live dashboard tools or web search available.",
         "ranges": "Operational demo alert bands, not clinical reference ranges or diagnoses.",

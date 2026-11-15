@@ -17,6 +17,7 @@ import { SERIES_COLORS, STATUS_STYLES, formatNumber } from "@/lib/metrics";
 
 const NOMINAL_FILL = "#0E9F86";
 const BASELINE = "#5F6B71";
+const REFERENCE = "#33424C";
 const GRID = "#E6EDF3";
 const AXIS = "#D2DEE8";
 const TICK = "#5E686E";
@@ -90,6 +91,8 @@ export default function MetricChart({
       for (const v of [p.values[s.field], p.low?.[s.field], p.high?.[s.field]]) if (v != null) all.push(v);
     }
   if (baseline != null) all.push(baseline);
+  const reference = metric.reference;
+  if (reference) all.push(reference.mean);
   const dmin = all.length ? Math.min(...all) : 0;
   const dmax = all.length ? Math.max(...all) : 1;
   const { domain, ticks, tickDecimals } = niceScale(dmin, dmax, metric.unit === "%" ? 100 : null);
@@ -146,6 +149,21 @@ export default function MetricChart({
               strokeDasharray="2 4"
               strokeWidth={1}
               ifOverflow="extendDomain"
+            />
+          )}
+          {reference && (
+            <ReferenceLine
+              y={reference.mean}
+              stroke={REFERENCE}
+              strokeDasharray="10 5"
+              strokeWidth={1.25}
+              ifOverflow="extendDomain"
+              label={{
+                value: `NASA ${formatNumber(reference.mean, metric.decimals)}`,
+                position: "insideTopRight",
+                fontSize: 10,
+                fill: REFERENCE,
+              }}
             />
           )}
           {banded &&

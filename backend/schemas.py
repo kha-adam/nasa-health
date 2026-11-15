@@ -82,6 +82,24 @@ class MetricSeries(FrozenModel):
     thresholds: Thresholds | None = None
 
 
+class SourceReference(FrozenModel):
+    """Published NASA source cited by the enriched ASTRA dataset."""
+
+    id: str  # e.g. "NTRS 20230003916"
+    title: str
+    url: str
+
+
+class MetricReference(FrozenModel):
+    """External population average drawn next to a metric: context, not an alert band."""
+
+    label: str
+    mean: float
+    sd: float | None = None
+    detail: str
+    source: SourceReference
+
+
 class MetricDefinition(FrozenModel):
     key: str
     label: str
@@ -92,6 +110,7 @@ class MetricDefinition(FrozenModel):
     decimals: int = 0
     description: str
     series: list[MetricSeries]
+    reference: MetricReference | None = None
 
 
 # --------------------------------------------------------------------------
@@ -116,6 +135,7 @@ class CurrentVitals(FrozenModel):
     blink_rate_per_min: float | None = None
     cortisol_nmol_l: float | None = None
     sleep_hours: float | None = None
+    sleep_7d_avg_h: float | None = None
     sleep_efficiency_pct: float | None = None
     sleep_awakenings: float | None = None
     body_mass_kg: float | None = None
@@ -169,6 +189,25 @@ class MentalHealthReport(FrozenModel):
     earth_psychologist_directive: str | None = None
 
 
+class BaselineComparison(FrozenModel):
+    """One reading of the last mission day against the astronaut's own previous 7 days."""
+
+    metric: str  # catalog key
+    field: str
+    today: float | None  # last night's sleep, or the day's mean for continuous signals
+    previous_7d_mean: float | None  # mean of the 7 mission days before (null until 7 exist)
+    previous_7d_days: int
+    delta: float | None  # today - previous_7d_mean, in the metric's unit
+    delta_pct: float | None
+
+
+class PersonalBaselines(FrozenModel):
+    mission_day: int
+    method: str
+    items: list[BaselineComparison]
+    references: list[SourceReference]
+
+
 class AstronautProfile(FrozenModel):
     id: AstronautId
     name: str
@@ -184,6 +223,7 @@ class AstronautProfile(FrozenModel):
     body_highlights: BodyHighlights
     events: list[MissionEvent]
     mental_reports: list[MentalHealthReport]
+    baselines: PersonalBaselines | None = None
     mental_redacted: bool = False
 
 

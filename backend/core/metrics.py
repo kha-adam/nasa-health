@@ -5,12 +5,77 @@ the API (served at GET /api/metrics) and the psychologist engine. The frontend
 reads ranges from the API instead of duplicating them.
 
 Ranges are operational alert bands for a demo, calibrated on the ASTRA
-simulated dataset — they are not clinical reference values.
+simulated dataset — they are not clinical reference values. The NASA
+in-flight sleep average shown next to sleep duration is a population
+reference for context only; it never changes a status.
 """
 
 from __future__ import annotations
 
-from schemas import MetricCadence, MetricCategory, MetricDefinition, MetricSeries, StatusTag, Thresholds
+from schemas import (
+    MetricCadence,
+    MetricCategory,
+    MetricDefinition,
+    MetricReference,
+    MetricSeries,
+    SourceReference,
+    StatusTag,
+    Thresholds,
+)
+
+# --------------------------------------------------------------------------
+# NASA sources cited by data/source/astra_donnees_enrichies_nasa.csv
+# --------------------------------------------------------------------------
+# Keys are the identifiers written in the CSV's nasa_*_reference_id(s) columns.
+# scripts/build_mock_data.py fails if the CSV cites anything not listed here,
+# or if its sleep reference values differ from SLEEP_REFERENCE below.
+
+REFERENCES: dict[str, SourceReference] = {
+    "NTRS_20230003916_SLEEP_INFLIGHT": SourceReference(
+        id="NTRS 20230003916",
+        title="Astronaut Sleep Duration Varies by Timing of Scheduled Sleep (NASA Ames, AsMA 2023)",
+        url="https://ntrs.nasa.gov/citations/20230003916",
+    ),
+    "HRR_TASK_1623": SourceReference(
+        id="HRR task 1623",
+        title="Standardized Behavioral Measures for Detecting Behavioral Health Risks during Exploration Missions",
+        url="https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1623",
+    ),
+    "HRR_TASK_1164": SourceReference(
+        id="HRR task 1164",
+        title="Development and testing of biomarkers to determine individual astronauts' vulnerabilities to "
+        "behavioral health disruptions",
+        url="https://humanresearchroadmap.nasa.gov/tasks/task.aspx?i=1164",
+    ),
+    "NTRS_20100026549": SourceReference(
+        id="NTRS 20100026549",
+        title="Behavioral Issues Associated With Long Duration Space Expeditions: Review and Analysis of "
+        "Astronaut Journals (2010)",
+        url="https://ntrs.nasa.gov/citations/20100026549",
+    ),
+}
+
+SLEEP_REFERENCE_ID = "NTRS_20230003916_SLEEP_INFLIGHT"
+SLEEP_REFERENCE = MetricReference(
+    label="NASA in-flight average",
+    mean=7.33,
+    sd=1.16,
+    detail="Actigraphy of 19 ISS crewmembers over 2,137 in-flight nights (2019–2022).",
+    source=REFERENCES[SLEEP_REFERENCE_ID],
+)
+
+# Signals compared with the astronaut's own previous 7 mission days (profile.baselines).
+# Value: the CSV column holding that previous-7-day mean.
+BASELINE_COLUMNS: dict[str, str] = {
+    "sleep_duration": "sleep_previous_7d_mean_h",
+    "hrv": "hrv_previous_7d_mean_ms",
+    "speech_rate": "speech_rate_previous_7d_mean_wpm",
+}
+BASELINE_METHOD = (
+    "Each value is compared with the astronaut's own mean over the 7 mission days before it "
+    "(daily means for continuous signals, last night's total for sleep). Individual baselines follow "
+    "NASA behavioural-health monitoring practice; a change is context, not a diagnosis."
+)
 
 # CSV column -> normalized field name used everywhere in the app.
 CSV_FIELDS: dict[str, str] = {
@@ -28,6 +93,7 @@ CSV_FIELDS: dict[str, str] = {
     "blink_rate_per_min": "blink_rate_per_min",
     "salivary_cortisol_nmol_l": "cortisol_nmol_l",
     "sleep_last_night_h": "sleep_hours",
+    "sleep_trailing_7d_mean_h": "sleep_7d_avg_h",
     "sleep_efficiency_pct": "sleep_efficiency_pct",
     "sleep_awakenings": "sleep_awakenings",
     "body_mass_kg": "body_mass_kg",
@@ -57,6 +123,7 @@ def _m(
     private: bool = False,
     decimals: int = 0,
     cadence: MetricCadence = "continuous",
+    reference: MetricReference | None = None,
 ) -> MetricDefinition:
     return MetricDefinition(
         key=key,
@@ -68,6 +135,7 @@ def _m(
         decimals=decimals,
         description=description,
         series=[MetricSeries(field=f, label=lbl, thresholds=t) for f, lbl, t in series],
+        reference=reference,
     )
 
 
@@ -113,8 +181,9 @@ CATALOG: list[MetricDefinition] = [
        "Salivary cortisol from the daily 06:30 sample. Persistently high morning values follow periods of stress "
        "and poor sleep.", decimals=1, cadence="daily"),
     _m("sleep_duration", "Sleep duration", "h", "physical",
-       [("sleep_hours", "Sleep last night", T(6.0, None, 4.5, None))],
-       "Hours slept in the previous sleep period.", decimals=2, cadence="daily"),
+       [("sleep_hours", "Sleep last night", T(6.0, None, 4.5, None)), ("sleep_7d_avg_h", "7-night average", None)],
+       "Hours slept in the previous sleep period, with the average of the last 7 nights. The reference line is "
+       "the in-flight average NASA measured on ISS crews.", decimals=2, cadence="daily", reference=SLEEP_REFERENCE),
     _m("sleep_efficiency", "Sleep efficiency", "%", "physical",
        [("sleep_efficiency_pct", "Efficiency", T(85, None, 75, None))],
        "Share of time in bed actually spent asleep.", decimals=1, cadence="daily"),

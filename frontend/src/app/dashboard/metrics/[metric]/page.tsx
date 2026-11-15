@@ -20,6 +20,7 @@ import {
   dashboardHref,
   defaultRange,
   formatNumber,
+  formatSigned,
   metricHref,
   metricSource,
   metricValue,
@@ -394,6 +395,14 @@ function Legend({ metric, banded, baseline }: { metric: MetricDefinition; banded
           Your mission average
         </span>
       )}
+      {metric.reference && (
+        <span className="inline-flex items-center gap-1.5">
+          <svg width="18" height="6" aria-hidden>
+            <line x1="0" y1="3" x2="18" y2="3" stroke="#33424C" strokeWidth="1.25" strokeDasharray="7 3" />
+          </svg>
+          {metric.reference.label}
+        </span>
+      )}
     </div>
   );
 }
@@ -449,20 +458,51 @@ function StatsCard({
                     Previous {previous.days === 1 ? "day" : `${previous.days} days`} (D{previous.from}–D{previous.to}) avg{" "}
                     <span className="num text-ink-soft">{formatNumber(prev, metric.decimals)}</span>
                     {delta != null && (
-                      <span className="num text-ink-soft">
-                        {" "}
-                        · {delta >= 0 ? "+" : "−"}
-                        {formatNumber(Math.abs(delta), metric.decimals || 1)}
-                      </span>
+                      <span className="num text-ink-soft"> · {formatSigned(delta, metric.decimals || 1)}</span>
                     )}
                   </span>
                 )}
               </div>
+              {i === 0 && metric.reference && <ReferenceNote metric={metric} avg={s.avg} />}
             </div>
           );
         })}
       </div>
     </section>
+  );
+}
+
+/** External population average (e.g. NASA in-flight sleep) with its source: context, never a status. */
+function ReferenceNote({ metric, avg }: { metric: MetricDefinition; avg: number | null }) {
+  const ref = metric.reference;
+  if (!ref) return null;
+  const d = metric.decimals;
+  return (
+    <p className="mt-2 text-[12px] leading-snug text-ink-faint">
+      {ref.label}{" "}
+      <span className="num text-ink-soft">
+        {formatNumber(ref.mean, d)}
+        {ref.sd != null && ` ± ${formatNumber(ref.sd, d)}`}
+      </span>{" "}
+      {metric.unit}
+      {avg != null && (
+        <>
+          {" "}
+          · this range <span className="num text-ink-soft">{formatSigned(avg - ref.mean, d)}</span> {metric.unit}
+        </>
+      )}{" "}
+      ·{" "}
+      <a
+        href={ref.source.url}
+        target="_blank"
+        rel="noreferrer"
+        title={ref.source.title}
+        className="font-medium text-sky hover:text-sky-hover"
+      >
+        {ref.source.id}
+      </a>
+      . {ref.detail} Population context, not a target.
+    </p>
   );
 }
 

@@ -41,9 +41,13 @@ def load_seed(path: Path = SEED_PATH) -> None:
 def redact(profile: AstronautProfile) -> AstronautProfile:
     """Medical view for the flight surgeon: no mental-health content."""
     vitals = profile.current_vitals.model_copy(update={f: None for f in PRIVATE_FIELDS})
+    baselines = profile.baselines and profile.baselines.model_copy(
+        update={"items": [b for b in profile.baselines.items if b.metric not in PRIVATE_METRICS]}
+    )
     return profile.model_copy(
         update={
             "current_vitals": vitals,
+            "baselines": baselines,
             "metric_status": {k: v for k, v in profile.metric_status.items() if k not in PRIVATE_METRICS},
             "body_highlights": profile.body_highlights.model_copy(update={"mental": []}),
             "events": [

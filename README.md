@@ -107,14 +107,31 @@ bedtimes `scripts/build_mock_data.py` extracts into `telemetry/<id>.json` (`slee
 
 ## Data
 
-Source: `data/source/astra_donnees_simulees.csv` (ASTRA simulated telemetry, 4 crew, mission
-days 120–150, 15-minute cadence). Crew C1–C3 become Vance, Chen and Lin; C4 is not used.
+Source: `data/source/astra_donnees_enrichies_nasa.csv`, the only input (4 crew, mission days
+1–150, 15-minute cadence, 53 columns). Crew C1–C3 become Vance, Chen and Lin; C4 is not used.
+
+* **37 telemetry columns:** the ASTRA simulation (days 120–150) extended back to day 1. The two
+  earlier CSVs, which held only these columns, have been removed.
+* **16 enrichment columns:** the NASA in-flight sleep average (7.33 ± 1.16 h,
+  [NTRS 20230003916](https://ntrs.nasa.gov/citations/20230003916)), NASA behavioural-health
+  sources, a 7-night sleep average and previous-7-day means for sleep, HRV and speech rate.
 
 ```bash
-.venv/bin/python scripts/expand_dataset.py           # -> data/source/astra_donnees_etendues.csv (days 1–150)
 .venv/bin/python scripts/build_mock_data.py          # -> backend/data/astronauts.json + telemetry/*.json
-.venv/bin/python scripts/build_mock_data.py --check  # validate against schemas.py
+.venv/bin/python scripts/build_mock_data.py --check  # validate the CSV and the seeds against schemas.py
 ```
+
+Before writing anything, the ETL checks that every required column exists, that the CSV cites only
+the NASA sources listed in `core/metrics.py` (`REFERENCES`, `SLEEP_REFERENCE`), and that every
+derived column matches its recomputation from the telemetry. Any mismatch stops the build.
+
+The app uses the enrichment in three places:
+* **Sleep detail page:** the NASA in-flight average reference line and a 7-night average series.
+* **Mental panel:** "Against your previous 7 days" compares sleep, HRV and speech rate with the
+  astronaut's own previous 7 days (`profile.baselines`). The flight surgeon does not get speech rate.
+* **BLUE context:** BLUE receives the same comparison.
+
+The NASA average is population context. Neither the reference nor the baselines change a status.
 
 Everything shown in the app (current values, statuses, highlights, events, seeded reports, history)
 is derived from the CSV by these scripts. Metric labels, units and alert bands live in
