@@ -7,6 +7,7 @@ import type { AstronautProfile } from "@/types/blue";
 import { api } from "@/lib/api";
 import { useRequireUser } from "@/lib/session";
 import AppShell from "@/components/AppShell";
+import PageHero from "@/components/PageHero";
 import MentalReportsPanel from "@/components/MentalReportsPanel";
 import { ErrorScreen, FullScreenLoader } from "@/components/ScreenStates";
 
@@ -42,10 +43,12 @@ export default function ReportsPage() {
   if (user.role !== "astronaut") {
     return (
       <AppShell user={user} active="reports" onLogout={logout}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <Lock className="h-6 w-6 text-ink-faint" aria-hidden />
-          <p className="text-sm text-ink-soft">Mental-health reports are private to the astronaut and the Earth psychologist.</p>
-          <Link href="/crew" className="text-sm font-semibold text-sky">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+          <span className="orb-disc h-12 w-12">
+            <Lock className="h-5 w-5" aria-hidden />
+          </span>
+          <p className="max-w-sm text-sm text-ink-soft">Mental-health reports are private to the astronaut and the Earth psychologist.</p>
+          <Link href="/crew" className="btn-soft px-4 py-1.5 text-sm">
             Back to crew
           </Link>
         </div>
@@ -56,13 +59,11 @@ export default function ReportsPage() {
 
   return (
     <AppShell user={user} profile={profile} active="reports" onLogout={logout}>
-      <main className="mx-auto w-full max-w-3xl px-4 py-6">
-        <p className="eyebrow">Reports</p>
-        <h1 className="mt-1 text-xl font-semibold text-ink">Summaries for the Earth psychologist</h1>
-        <p className="mt-1 text-[13.5px] text-ink-soft">
+      <main className="mx-auto w-full max-w-3xl pb-24">
+        <PageHero eyebrow="Reports" title="Summaries for the Earth psychologist" texture="wave">
           Each check-in with BLUE becomes a short report. Earth replies with what to do next.
-        </p>
-        <div className="mt-5">
+        </PageHero>
+        <div className="mt-4">
           <MentalReportsPanel
             reports={profile.mental_reports}
             onSimulateEarthReply={handleEarthReply}

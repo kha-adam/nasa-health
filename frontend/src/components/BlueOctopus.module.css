@@ -1,4 +1,6 @@
 .character { width: 220px; height: 192px; overflow: visible; flex-shrink: 0; }
+/* Light stage: a softer floor shadow under the character (integration only). */
+.character > ellipse:first-of-type { opacity: .16; }
 .body { transform-origin: 160px 246px; animation: breathe 4s ease-in-out infinite; }
 .head { transform-origin: 160px 180px; transition: transform .35s; }
 .eyes { transform-origin: 160px 135px; animation: blink 5.2s infinite; }

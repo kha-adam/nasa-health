@@ -15,11 +15,14 @@ import {
 import type { MetricHistory, MissionEvent } from "@/types/blue";
 import { STATUS_STYLES, formatNumber } from "@/lib/metrics";
 
-// Validated pair on the dark chart surface #0F1F36 (dataviz validator: all checks pass);
+// Validated pair on the white chart surface (dataviz validator, light mode: all checks pass);
 // the 2nd series is also dashed so identity never relies on colour alone.
-export const SERIES_COLORS = ["#3E95DD", "#D0699F"];
-const NOMINAL_FILL = "#3CC8AE";
-const BASELINE = "#9AB0CB";
+export const SERIES_COLORS = ["#245BCB", "#C0457E"];
+const NOMINAL_FILL = "#0E9F86";
+const BASELINE = "#5F6B71";
+const GRID = "#E6EDF3";
+const AXIS = "#D2DEE8";
+const TICK = "#5E686E";
 
 interface Row {
   label: string;
@@ -108,18 +111,18 @@ export default function MetricChart({
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} margin={{ top: 18, right: 28, bottom: 4, left: 0 }}>
-          <CartesianGrid stroke="#1E3556" strokeDasharray="0" vertical={false} />
+          <CartesianGrid stroke={GRID} strokeDasharray="0" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 11, fill: "#9AB0CB", fontFamily: "var(--font-mono)" }}
+            tick={{ fontSize: 11, fill: TICK, fontFamily: "var(--font-mono)" }}
             tickLine={false}
-            axisLine={{ stroke: "#2C4A73" }}
+            axisLine={{ stroke: AXIS }}
             minTickGap={28}
             interval="preserveStartEnd"
           />
           <YAxis
             domain={domain}
-            tick={{ fontSize: 11, fill: "#9AB0CB", fontFamily: "var(--font-mono)" }}
+            tick={{ fontSize: 11, fill: TICK, fontFamily: "var(--font-mono)" }}
             tickLine={false}
             axisLine={false}
             width={48}
@@ -127,7 +130,7 @@ export default function MetricChart({
             tickFormatter={(v: number) => formatNumber(v, tickDecimals)}
           />
           {showBand && (
-            <ReferenceArea y1={bandLo} y2={bandHi} fill={NOMINAL_FILL} fillOpacity={0.08} stroke="none" ifOverflow="hidden" />
+            <ReferenceArea y1={bandLo} y2={bandHi} fill={NOMINAL_FILL} fillOpacity={0.09} stroke="none" ifOverflow="hidden" />
           )}
           {markers.map(({ e, n, i }) => (
             <ReferenceLine
@@ -136,7 +139,7 @@ export default function MetricChart({
               stroke={STATUS_STYLES[e.severity].hex}
               strokeDasharray="4 3"
               strokeWidth={1.5}
-              label={{ value: `${n}`, position: "top", fontSize: 11, fontWeight: 600, fill: "#E6EEF8" }}
+              label={{ value: `${n}`, position: "top", fontSize: 11, fontWeight: 600, fill: "#151515" }}
             />
           ))}
           {baseline != null && (
@@ -155,7 +158,7 @@ export default function MetricChart({
                 dataKey={`b${i}`}
                 stroke="none"
                 fill={SERIES_COLORS[i]}
-                fillOpacity={0.16}
+                fillOpacity={0.14}
                 isAnimationActive={false}
                 connectNulls
                 activeDot={false}
@@ -170,18 +173,18 @@ export default function MetricChart({
               strokeWidth={2}
               strokeDasharray={i === 1 ? "6 4" : undefined}
               dot={sparse || points.length <= 40 ? { r: 3, strokeWidth: 0, fill: SERIES_COLORS[i] } : false}
-              activeDot={{ r: 5, stroke: "#0F1F36", strokeWidth: 2 }}
+              activeDot={{ r: 5, stroke: "#FFFFFF", strokeWidth: 2 }}
               connectNulls={sparse}
               isAnimationActive={false}
             />
           ))}
           <Tooltip
-            cursor={{ stroke: "#7890AE", strokeWidth: 1 }}
+            cursor={{ stroke: "#9DB0C0", strokeWidth: 1 }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const row = payload[0].payload as Row;
               return (
-                <div className="rounded-[4px] border border-line-strong bg-rail px-3 py-2 text-xs shadow-[var(--shadow-pop)]">
+                <div className="rounded-[14px] border border-line bg-white px-3.5 py-2.5 text-xs shadow-[var(--shadow-pop)]">
                   <p className="num font-medium text-ink">
                     {resolution === "daily" ? `Mission day ${row.day}` : `Day ${row.day} · ${row.t.slice(11, 16)} UTC`}
                   </p>
@@ -191,7 +194,7 @@ export default function MetricChart({
                     const band = row[`b${i}`] as [number, number] | undefined;
                     return (
                       <p key={s.field} className="mt-1 flex items-center gap-1.5 text-ink">
-                        <span className="h-0.5 w-3" style={{ backgroundColor: SERIES_COLORS[i] }} />
+                        <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: SERIES_COLORS[i] }} />
                         {s.label}: <strong className="num font-medium">{v == null ? "no sample" : formatNumber(v, metric.decimals)}</strong>{" "}
                         {v != null && metric.unit}
                         {band && (

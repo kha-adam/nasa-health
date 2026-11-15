@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
+// Same families as the SphereAI reference (Manrope headings, Inter interface), both
+// SIL Open Font License, self-hosted at build time by next/font.
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-plex-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
+const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-mono",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${plexSans.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${manrope.variable}`}>
       <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );

@@ -163,10 +163,12 @@ function MetricDetail() {
   if (!metric) {
     return (
       <AppShell user={user} profile={profile} active="metrics" onLogout={logout}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <Lock className="h-6 w-6 text-ink-faint" aria-hidden />
-          <p className="text-sm text-ink-soft">This metric doesn&apos;t exist or isn&apos;t available to your account.</p>
-          <Link href={dashboardHref(profile.id, asSurgeon)} className="text-sm font-semibold text-sky">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+          <span className="orb-disc h-12 w-12">
+            <Lock className="h-5 w-5" aria-hidden />
+          </span>
+          <p className="max-w-sm text-sm text-ink-soft">This metric doesn&apos;t exist or isn&apos;t available to your account.</p>
+          <Link href={dashboardHref(profile.id, asSurgeon)} className="btn-soft px-4 py-1.5 text-sm">
             Back to overview
           </Link>
         </div>
@@ -193,21 +195,21 @@ function MetricDetail() {
 
   return (
     <AppShell user={user} profile={profile} active="metrics" onLogout={logout}>
-      <div className="grid flex-1 grid-cols-1 gap-4 p-4 md:grid-cols-[232px_minmax(0,1fr)] md:px-5">
+      <div className="grid flex-1 grid-cols-1 gap-3 pb-24 md:grid-cols-[240px_minmax(0,1fr)] lg:pb-6">
         {/* Metric picker */}
         <nav
           aria-label="Metrics"
-          className="card thin-scroll h-fit max-h-[calc(100vh-6rem)] overflow-y-auto p-2 md:sticky md:top-4"
+          className="card thin-scroll h-fit max-h-[calc(100vh-6rem)] overflow-y-auto p-2.5 md:sticky md:top-3"
         >
           <Link
             href={dashboardHref(profile.id, asSurgeon)}
-            className="mb-1 flex items-center gap-1.5 rounded-[4px] px-2 py-1.5 text-xs font-medium text-ink-soft hover:bg-raised hover:text-ink"
+            className="mb-1 flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:bg-raised hover:text-ink"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Overview · {profile.name}
           </Link>
           {[...grouped].map(([cat, list]) => (
             <div key={cat} className="mt-2">
-              <p className="eyebrow px-2 pb-1 pt-1">{CATEGORY_LABELS[cat]}</p>
+              <p className="eyebrow px-2.5 pb-1 pt-2">{CATEGORY_LABELS[cat]}</p>
               {list.map((m) => {
                 const s = profile.metric_status[m.key] ?? "NOMINAL";
                 const active = m.key === metric.key;
@@ -216,11 +218,10 @@ function MetricDetail() {
                     key={m.key}
                     href={metricHref(m.key, profile.id, asSurgeon)}
                     aria-current={active ? "page" : undefined}
-                    className={`relative flex items-center gap-2 rounded-[4px] px-2 py-1.5 text-[13px] transition ${
-                      active ? "bg-tint font-medium text-ink" : "text-ink-soft hover:bg-raised hover:text-ink"
+                    className={`relative flex items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-[13px] transition ${
+                      active ? "bg-tint font-medium text-ink ring-1 ring-inset ring-sky/25" : "text-ink-soft hover:bg-raised hover:text-ink"
                     }`}
                   >
-                    {active && <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-r bg-sky" aria-hidden />}
                     <StatusGlyph status={s} />
                     <span className="truncate">{m.label}</span>
                   </Link>
@@ -238,11 +239,11 @@ function MetricDetail() {
 
         <main className="flex min-w-0 flex-col gap-4">
           {/* Headline */}
-          <section className="card p-5">
+          <section className="card bg-[radial-gradient(90%_140%_at_100%_0%,#dcedff_0%,#f5faff_40%,#ffffff_75%)] p-6">
             <div className="flex flex-wrap items-start gap-6">
               <div className="min-w-0 flex-1">
-                <p className="eyebrow">{CATEGORY_LABELS[metric.category]}</p>
-                <h1 className="mt-1 text-xl font-semibold text-ink">{metric.label}</h1>
+                <p className="pill">{CATEGORY_LABELS[metric.category]}</p>
+                <h1 className="mt-3 text-[28px] font-normal leading-tight tracking-[-0.02em] text-ink">{metric.label}</h1>
                 <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-ink-soft">{metric.description}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                   <SourceTag kind={source.kind} origin={source.origin} />
@@ -250,7 +251,7 @@ function MetricDetail() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="num text-4xl font-medium leading-none text-ink">
+                <p className="num text-[44px] font-normal leading-none tracking-[-0.03em] text-ink">
                   {metricValue(metric, profile.current_vitals)}
                   <span className="ml-1.5 font-sans text-sm text-ink-faint">{metric.unit}</span>
                 </p>
@@ -265,18 +266,16 @@ function MetricDetail() {
           </section>
 
           {/* Chart */}
-          <section className="card p-5">
+          <section className="card p-5 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <div role="tablist" aria-label="Time range" className="flex flex-wrap rounded-[4px] border border-line p-0.5">
+              <div role="tablist" aria-label="Time range" className="seg flex-wrap max-sm:rounded-[20px]">
                 {RANGES.map((r) => (
                   <button
                     key={r.key}
                     role="tab"
                     aria-selected={range === r.key}
                     onClick={() => setRange(r.key)}
-                    className={`rounded-[3px] px-3 py-1.5 text-xs font-medium transition ${
-                      range === r.key ? "bg-nasa text-white ring-1 ring-sky/40" : "text-ink-soft hover:bg-raised hover:text-ink"
-                    }`}
+                    className="seg-option px-3.5 py-1.5 text-xs"
                   >
                     {r.label}
                   </button>
@@ -292,7 +291,7 @@ function MetricDetail() {
                       max={profile.mission_day}
                       value={custom.from}
                       onChange={(e) => setCustom({ ...custom, from: Number(e.target.value) })}
-                      className="num w-16 rounded-[3px] border border-line bg-raised px-2 py-1 text-ink"
+                      className="field num w-20 px-3 py-1.5"
                       aria-label="First mission day"
                     />
                   </label>
@@ -303,7 +302,7 @@ function MetricDetail() {
                     max={profile.mission_day}
                     value={custom.to}
                     onChange={(e) => setCustom({ ...custom, to: Number(e.target.value) })}
-                    className="num w-16 rounded-[3px] border border-line bg-raised px-2 py-1 text-ink"
+                    className="field num w-20 px-3 py-1.5"
                     aria-label="Last mission day"
                   />
                   {!customValid && <span className="text-advisory">Days 1–{profile.mission_day}, first ≤ last</span>}
@@ -376,20 +375,20 @@ function Legend({ metric, banded, baseline }: { metric: MetricDefinition; banded
       ))}
       {banded && (
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-4 rounded-[2px]" style={{ backgroundColor: SERIES_COLORS[0], opacity: 0.3 }} />
+          <span className="h-2.5 w-4 rounded-[4px]" style={{ backgroundColor: SERIES_COLORS[0], opacity: 0.25 }} />
           Low–high
         </span>
       )}
       {t && (t.advisory_low != null || t.advisory_high != null) && (
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-4 rounded-[2px] bg-nominal/20 ring-1 ring-nominal/40" />
+          <span className="h-2.5 w-4 rounded-[4px] bg-nominal/15 ring-1 ring-nominal/40" />
           Normal range
         </span>
       )}
       {baseline && (
         <span className="inline-flex items-center gap-1.5">
           <svg width="18" height="6" aria-hidden>
-            <line x1="0" y1="3" x2="18" y2="3" stroke="#9AB0CB" strokeWidth="1" strokeDasharray="2 3" />
+            <line x1="0" y1="3" x2="18" y2="3" stroke="#5F6B71" strokeWidth="1" strokeDasharray="2 3" />
           </svg>
           Your mission average
         </span>
@@ -407,8 +406,8 @@ function StatsCard({
 }) {
   const { metric } = history;
   return (
-    <section className="card p-5">
-      <h2 className="text-sm font-semibold text-ink">Summary for this range</h2>
+    <section className="card p-5 sm:p-6">
+      <h2 className="text-[17px] font-medium text-ink">Summary for this range</h2>
       <div className="mt-3 space-y-4">
         {history.stats.map((s, i) => {
           const series = metric.series.find((x) => x.field === s.field);
@@ -419,11 +418,11 @@ function StatsCard({
             <div key={s.field}>
               {metric.series.length > 1 && (
                 <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-ink">
-                  <span className="h-0.5 w-3" style={{ backgroundColor: SERIES_COLORS[i] }} />
+                  <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: SERIES_COLORS[i] }} />
                   {series?.label}
                 </p>
               )}
-              <dl className="grid grid-cols-4 gap-px overflow-hidden rounded-[4px] border border-line bg-line">
+              <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(
                   [
                     ["Average", formatNumber(s.avg, metric.decimals)],
@@ -432,13 +431,13 @@ function StatsCard({
                     ["In range", s.pct_nominal == null ? "—" : `${formatNumber(s.pct_nominal, 0)}%`],
                   ] as const
                 ).map(([label, v]) => (
-                  <div key={label} className="bg-card px-3 py-2.5">
+                  <div key={label} className="rounded-[16px] border border-line bg-raised/70 px-3.5 py-3">
                     <dt className="eyebrow">{label}</dt>
-                    <dd className="num mt-1 text-lg text-ink">{v}</dd>
+                    <dd className="num mt-1 text-[20px] font-semibold tracking-[-0.02em] text-ink">{v}</dd>
                   </div>
                 ))}
               </dl>
-              <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-ink-faint">
+              <div className="mt-2.5 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[12px] text-ink-faint">
                 {normal && (
                   <span>
                     Normal range: <span className="num text-ink-soft">{normal}</span> {metric.unit}
@@ -468,15 +467,15 @@ function StatsCard({
 
 function EventsCard({ history }: { history: MetricHistory }) {
   return (
-    <section className="card p-5">
-      <h2 className="text-sm font-semibold text-ink">Events in this range</h2>
+    <section className="card p-5 sm:p-6">
+      <h2 className="text-[17px] font-medium text-ink">Events in this range</h2>
       {history.events.length === 0 ? (
         <p className="mt-3 text-sm text-ink-soft">Nothing notable logged for this metric.</p>
       ) : (
         <ol className="mt-3 space-y-3">
           {history.events.map((e, i) => (
             <li key={e.id} className="flex gap-3">
-              <span className="num flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border border-line-strong text-[10px] font-medium text-ink">
+              <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line-strong bg-white text-[11px] font-semibold text-ink">
                 {i + 1}
               </span>
               <div className="min-w-0">
@@ -501,11 +500,11 @@ function EventsCard({ history }: { history: MetricHistory }) {
 function DataTable({ history }: { history: MetricHistory }) {
   const { metric, points, resolution } = history;
   return (
-    <details className="card p-5">
-      <summary className="cursor-pointer text-sm font-semibold text-sky">Show the data as a table</summary>
+    <details className="card p-5 sm:p-6">
+      <summary className="cursor-pointer text-sm font-semibold text-sky hover:text-sky-hover">Show the data as a table</summary>
       <div className="thin-scroll mt-3 max-h-80 overflow-auto">
         <table className="w-full text-left text-xs">
-          <thead className="sticky top-0 bg-card text-ink-faint">
+          <thead className="sticky top-0 bg-white text-ink-faint">
             <tr>
               <th className="py-1.5 pr-4 font-medium">Time</th>
               {resolution === "15min" && <th className="py-1.5 pr-4 font-medium">Activity</th>}

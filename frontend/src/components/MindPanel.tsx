@@ -1,13 +1,14 @@
 "use client";
 
 import { CheckCircle2, Lock, MessageSquareText } from "lucide-react";
-import type { AstronautProfile } from "@/types/blue";
+import type { AstronautProfile, MetricDefinition } from "@/types/blue";
 import { STATUS_RANK } from "@/lib/metrics";
 import { Observation } from "./ObservationsPanel";
 import SourceTag from "./SourceTag";
 
 interface Props {
   profile: AstronautProfile;
+  catalog: MetricDefinition[];
   asSurgeon: boolean;
   onOpenLog?: () => void;
 }
@@ -16,7 +17,7 @@ interface Props {
  * Centre column (mental panel). Mental health is shown as observations over time and
  * check-ins — never placed on the body, so no anatomical location is implied.
  */
-export default function MindPanel({ profile, asSurgeon, onOpenLog }: Props) {
+export default function MindPanel({ profile, catalog, asSurgeon, onOpenLog }: Props) {
   const observations = [...profile.body_highlights.mental].sort(
     (a, b) => STATUS_RANK[b.severity] - STATUS_RANK[a.severity],
   );
@@ -25,26 +26,28 @@ export default function MindPanel({ profile, asSurgeon, onOpenLog }: Props) {
 
   return (
     <section aria-labelledby="mind-title" className="card flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-        <h2 id="mind-title" className="text-sm font-semibold text-ink">
-          Mind & recovery <span className="font-normal text-ink-faint">· over time</span>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 pb-3 pt-4">
+        <h2 id="mind-title" className="text-[17px] font-medium text-ink">
+          Mind & recovery <span className="text-[15px] font-normal text-ink-faint">· over time</span>
         </h2>
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-faint">
+        <span className="pill">
           <Lock className="h-3 w-3" aria-hidden /> {asSurgeon ? "Private to the astronaut" : "You & the Earth psychologist"}
         </span>
       </header>
 
       {asSurgeon || profile.mental_redacted ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-          <Lock className="h-6 w-6 text-ink-faint" aria-hidden />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 py-10 text-center">
+          <span className="orb-disc h-12 w-12">
+            <Lock className="h-5 w-5" aria-hidden />
+          </span>
           <p className="max-w-sm text-sm text-ink-soft">
             Mental-health observations and BLUE check-ins stay between the astronaut and the Earth psychologist.
-            Sleep, heart-rate variability and cortisol remain visible on the left.
+            Non-private health statuses remain available in the overview and detailed measurements.
           </p>
         </div>
       ) : (
         <div className="thin-scroll min-h-0 flex-1 overflow-y-auto">
-          <div className="px-4 pb-4 pt-3">
+          <div className="px-5 pb-5 pt-4">
             <div className="flex items-center justify-between gap-2">
               <p className="eyebrow">Observations</p>
               <SourceTag kind="computed" origin="from sensor & voice data" />
@@ -52,7 +55,7 @@ export default function MindPanel({ profile, asSurgeon, onOpenLog }: Props) {
             {observations.length ? (
               <div className="mt-3 space-y-4">
                 {observations.map((h, i) => (
-                  <Observation key={i} profile={profile} h={h} asSurgeon={asSurgeon} />
+                  <Observation key={i} profile={profile} h={h} catalog={catalog} asSurgeon={asSurgeon} />
                 ))}
               </div>
             ) : (
@@ -62,12 +65,12 @@ export default function MindPanel({ profile, asSurgeon, onOpenLog }: Props) {
             )}
           </div>
 
-          <div className="border-t border-line px-4 py-4">
+          <div className="border-t border-line px-5 py-5">
             <div className="flex items-center justify-between gap-2">
               <p className="eyebrow">Check-ins with BLUE</p>
               <SourceTag kind="declared" />
             </div>
-            <dl className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-[4px] border border-line bg-line">
+            <dl className="mt-3 grid grid-cols-3 gap-2">
               {(
                 [
                   ["Reports", String(reports.length)],
@@ -75,9 +78,9 @@ export default function MindPanel({ profile, asSurgeon, onOpenLog }: Props) {
                   ["Awaiting Earth", String(queued)],
                 ] as const
               ).map(([label, value]) => (
-                <div key={label} className="bg-card px-3 py-2.5">
+                <div key={label} className="rounded-[16px] border border-line bg-raised/70 px-3.5 py-3">
                   <dt className="eyebrow">{label}</dt>
-                  <dd className="num mt-1 text-lg text-ink">{value}</dd>
+                  <dd className="num mt-1 text-[22px] font-semibold tracking-[-0.02em] text-ink">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -88,7 +91,7 @@ export default function MindPanel({ profile, asSurgeon, onOpenLog }: Props) {
             {onOpenLog && (
               <button
                 onClick={onOpenLog}
-                className="mt-3 inline-flex items-center gap-2 rounded-[4px] border border-line-strong px-3 py-1.5 text-xs font-semibold text-sky transition hover:bg-raised"
+                className="btn-soft mt-3.5 px-3.5 py-1.5 text-xs"
               >
                 <MessageSquareText className="h-3.5 w-3.5" aria-hidden /> Open the log
               </button>

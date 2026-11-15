@@ -29,8 +29,8 @@ export default function StatusBadge({
   const s = STATUS_STYLES[status];
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${s.text} ${
-        quiet ? "" : `rounded-[3px] px-1.5 py-0.5 ring-1 ring-inset ${s.bg} ${s.ring}`
+      className={`inline-flex shrink-0 items-center gap-1.5 text-[12px] font-semibold leading-none ${s.text} ${
+        quiet ? "" : `rounded-full px-2.5 py-1 ring-1 ring-inset ${s.bg} ${s.ring}`
       } ${className}`}
     >
       <StatusGlyph status={status} />

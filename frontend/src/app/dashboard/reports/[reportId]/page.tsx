@@ -37,9 +37,11 @@ export default function ReportDetailPage() {
     return (
       <AppShell user={user} active="reports" onLogout={logout}>
         <Centered>
-          <Lock className="h-6 w-6 text-ink-faint" aria-hidden />
-          <p className="text-sm text-ink-soft">Mental-health reports are private to the astronaut and the Earth psychologist.</p>
-          <Link href="/crew" className="text-sm font-semibold text-sky">
+          <span className="orb-disc h-12 w-12">
+            <Lock className="h-5 w-5" aria-hidden />
+          </span>
+          <p className="max-w-sm text-sm text-ink-soft">Mental-health reports are private to the astronaut and the Earth psychologist.</p>
+          <Link href="/crew" className="btn-soft px-4 py-1.5 text-sm">
             Back to crew
           </Link>
         </Centered>
@@ -54,7 +56,7 @@ export default function ReportDetailPage() {
       <AppShell user={user} profile={profile} active="reports" onLogout={logout}>
         <Centered>
           <p className="text-sm text-ink-soft">This report could not be found. Reports from a past server session are reset.</p>
-          <Link href="/dashboard/reports" className="text-sm font-semibold text-sky">
+          <Link href="/dashboard/reports" className="btn-soft px-4 py-1.5 text-sm">
             All reports
           </Link>
         </Centered>
@@ -79,32 +81,31 @@ export default function ReportDetailPage() {
 
   return (
     <AppShell user={user} profile={profile} active="reports" onLogout={logout}>
-      <main className="mx-auto w-full max-w-3xl px-4 py-6">
-        <Link
-          href="/dashboard/reports"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-ink"
-        >
+      <main className="mx-auto w-full max-w-3xl pb-24">
+        <Link href="/dashboard/reports" className="btn-ghost px-3.5 py-1.5 text-xs">
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> All reports
         </Link>
 
         <article className="card mt-3">
-          <header className="border-b border-line px-6 py-5">
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <span className="num text-ink-faint">{report.created_at}</span>
-              <span className="num rounded-[3px] border border-line-strong px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-ink-soft">
+          <header className="border-b border-line bg-[radial-gradient(100%_140%_at_100%_0%,#dcedff_0%,#f5faff_42%,#ffffff_78%)] px-6 pb-6 pt-5 sm:px-8">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs">
+              <span className="pill num">{report.created_at}</span>
+              <span className="pill">
                 {report.session_mode === "DEEP_SUPPORT" ? "Deep support" : "Brief check-in"}
               </span>
               <span
-                className={`ml-auto inline-flex items-center gap-1.5 font-medium ${reviewed ? "text-nominal" : "text-advisory"}`}
+                className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ring-1 ring-inset ${
+                  reviewed ? "bg-nominal-soft text-nominal ring-nominal-line" : "bg-advisory-soft text-advisory ring-advisory-line"
+                }`}
               >
                 {reviewed ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> : <Clock className="h-3.5 w-3.5" aria-hidden />}
                 {reviewed ? "Reviewed by Earth" : "Queued for Earth"}
               </span>
             </div>
-            <h1 className="mt-3 text-xl font-semibold leading-snug text-ink">{report.headline}</h1>
+            <h1 className="mt-4 text-[26px] font-normal leading-snug tracking-[-0.02em] text-ink">{report.headline}</h1>
           </header>
 
-          <div className="space-y-6 px-6 py-5">
+          <div className="space-y-7 px-6 py-6 sm:px-8">
             <Section title="What you told BLUE" tag={<SourceTag kind="declared" origin="Conversation summary" />}>
               {report.summary}
             </Section>
@@ -113,21 +114,23 @@ export default function ReportDetailPage() {
             </Section>
 
             {reviewed && report.earth_psychologist_directive ? (
-              <div className="rounded-[4px] border border-nominal/40 bg-nominal/10 p-4">
-                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-nominal">
+              <div className="rounded-[20px] border border-nominal-line bg-nominal-soft p-5">
+                <p className="flex items-center gap-1.5 text-[13px] font-semibold text-nominal">
                   <Globe2 className="h-4 w-4" aria-hidden /> What to do — Earth psychologist
                 </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-ink">{report.earth_psychologist_directive}</p>
+                <p className="mt-2 text-[15px] leading-relaxed text-ink">{report.earth_psychologist_directive}</p>
               </div>
             ) : (
               <div>
                 <button
                   onClick={simulate}
                   disabled={pending}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[4px] border border-line-strong px-3 py-2 text-sm font-semibold text-sky transition hover:bg-raised disabled:opacity-60"
+                  className="btn-cta h-12 w-full pl-6 pr-1.5 text-sm"
                 >
-                  {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Globe2 className="h-4 w-4" aria-hidden />}
                   {pending ? "Receiving Earth uplink…" : "Simulate Earth Psychologist Reply"}
+                  <span className="cta-disc h-9 w-9">
+                    {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Globe2 className="h-4 w-4" aria-hidden />}
+                  </span>
                 </button>
                 {uplinkError && (
                   <p role="alert" className="mt-2 text-xs text-urgent">
@@ -138,7 +141,7 @@ export default function ReportDetailPage() {
             )}
           </div>
 
-          <footer className="flex items-center gap-1.5 border-t border-line px-6 py-3 text-[11px] text-ink-faint">
+          <footer className="flex items-center gap-1.5 border-t border-line bg-[#f7fbfe] px-6 py-3.5 text-[12px] text-ink-faint sm:px-8">
             <Lock className="h-3 w-3" aria-hidden /> Visible only to you and the Earth psychologist.
           </footer>
         </article>
@@ -151,14 +154,14 @@ function Section({ title, tag, children }: { title: string; tag: React.ReactNode
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="eyebrow">{title}</h2>
+        <h2 className="text-[13px] font-semibold text-ink-soft">{title}</h2>
         {tag}
       </div>
-      <p className="mt-2 text-[15px] leading-relaxed text-ink">{children}</p>
+      <p className="mt-2.5 text-[15.5px] leading-relaxed text-ink">{children}</p>
     </section>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">{children}</div>;
+  return <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">{children}</div>;
 }

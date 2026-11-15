@@ -94,11 +94,11 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
 
   return (
     <section aria-labelledby="body-title" className="card flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-        <h2 id="body-title" className="text-sm font-semibold text-ink">
-          Body <span className="hidden font-normal text-ink-faint sm:inline">· physical observations</span>
+      <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
+        <h2 id="body-title" className="min-w-0 text-[17px] font-medium text-ink">
+          Body <span className="hidden text-[15px] font-normal text-ink-faint sm:inline">· physical observations</span>
         </h2>
-        <div role="radiogroup" aria-label="Body view" className="flex rounded-[4px] border border-line p-0.5">
+        <div role="radiogroup" aria-label="Body view" className="seg">
           {(
             [
               ["model", "Model", PersonStanding],
@@ -110,9 +110,7 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
               role="radio"
               aria-checked={view === key}
               onClick={() => setView(key)}
-              className={`inline-flex items-center gap-1.5 rounded-[3px] px-2.5 py-1 text-xs font-medium transition ${
-                view === key ? "bg-tint text-ink" : "text-ink-faint hover:text-ink"
-              }`}
+              className="seg-option px-3 py-1 text-xs"
             >
               <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
             </button>
@@ -121,17 +119,16 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
       </header>
 
       {view === "list" ? (
-        <ul className="thin-scroll min-h-0 flex-1 divide-y divide-line overflow-y-auto">
+        <ul className="thin-scroll flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-2.5 pb-3 pt-1">
           {zones.map((z) => {
-            const list = grouped.get(z) ?? [];
             const sev = severityOf(z);
             return (
               <li key={z}>
                 <button
                   onClick={() => toggle(z)}
                   aria-pressed={selected === z}
-                  className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-raised ${
-                    selected === z ? "bg-tint" : ""
+                  className={`flex w-full items-start gap-3 rounded-[18px] px-4 py-3 text-left transition ${
+                    selected === z ? "bg-tint ring-1 ring-inset ring-sky/30" : "hover:bg-raised"
                   }`}
                 >
                   <span className="mt-1.5">
@@ -140,13 +137,11 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="text-sm font-medium text-ink">{ZONES[z].name}</span>
-                      <span className={`text-[11px] font-semibold uppercase tracking-wide ${STATUS_STYLES[sev].text}`}>
+                      <span className={`text-[12px] font-semibold ${STATUS_STYLES[sev].text}`}>
                         {STATUS_STYLES[sev].label}
                       </span>
                     </span>
-                    <span className="mt-0.5 block text-[13px] text-ink-soft">
-                      {list.length ? list.map((h) => h.label).join(" · ") : "No observation"}
-                    </span>
+                    <span className="mt-0.5 block text-[13px] text-ink-soft">Select to review this area</span>
                   </span>
                 </button>
               </li>
@@ -156,7 +151,7 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
       ) : (
         <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
           <div
-            className="relative min-h-0 flex-1 touch-none select-none"
+            className="relative min-h-0 flex-1 touch-none select-none bg-[radial-gradient(55%_48%_at_50%_46%,#e6f3ff_0%,rgb(255_255_255/0)_72%)]"
             onPointerDown={(e) => {
               drag.current = { x: e.clientX, start: angle, moved: false };
             }}
@@ -179,32 +174,32 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
             >
               <defs>
                 <linearGradient id="body-shade" gradientUnits="userSpaceOnUse" x1="28" x2="172" y1="0" y2="0">
-                  <stop offset="0" stopColor="#0E1E35" />
-                  <stop offset={Math.max(0.1, Math.min(0.9, highlightAt))} stopColor="#22406A" />
-                  <stop offset="1" stopColor="#0C1A2E" />
+                  <stop offset="0" stopColor="#D5E4F1" />
+                  <stop offset={Math.max(0.1, Math.min(0.9, highlightAt))} stopColor="#FAFDFF" />
+                  <stop offset="1" stopColor="#CCDDEC" />
                 </linearGradient>
                 <linearGradient id="body-fade" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0.7" stopColor="#0F1F36" stopOpacity="0" />
-                  <stop offset="1" stopColor="#0F1F36" stopOpacity="0.55" />
+                  <stop offset="0.7" stopColor="#FFFFFF" stopOpacity="0" />
+                  <stop offset="1" stopColor="#FFFFFF" stopOpacity="0.6" />
                 </linearGradient>
               </defs>
 
               {/* centre axis + level ticks: the instrument frame */}
-              <line x1="100" x2="100" y1="8" y2="444" stroke="#1E3556" strokeDasharray="1 4" />
+              <line x1="100" x2="100" y1="8" y2="444" stroke="#C9D8E5" strokeDasharray="1 4" />
               {[60, 140, 220, 300, 380].map((y) => (
-                <g key={y} stroke="#1E3556">
+                <g key={y} stroke="#C9D8E5">
                   <line x1="-76" x2="-68" y1={y} y2={y} />
                   <line x1="268" x2="276" y1={y} y2={y} />
                 </g>
               ))}
 
-              <ellipse cx="100" cy="436" rx={46 * c + 8} ry="5" fill="#020814" opacity="0.6" />
+              <ellipse cx="100" cy="436" rx={46 * c + 8} ry="5" fill="#0C476D" opacity="0.16" />
 
               {/* silhouette */}
               <g transform={turn(0)}>
-                <path d={BODY_PATH} fill="url(#body-shade)" stroke="#3A5E8C" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                <ellipse cx="100" cy="42" rx="26" ry="31" fill="url(#body-shade)" stroke="#3A5E8C" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                <path d={LANDMARKS} fill="none" stroke="#3A5E8C" strokeWidth="0.7" opacity="0.55" vectorEffect="non-scaling-stroke" />
+                <path d={BODY_PATH} fill="url(#body-shade)" stroke="#9AB4CC" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                <ellipse cx="100" cy="42" rx="26" ry="31" fill="url(#body-shade)" stroke="#9AB4CC" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                <path d={LANDMARKS} fill="none" stroke="#9AB4CC" strokeWidth="0.7" opacity="0.7" vectorEffect="non-scaling-stroke" />
                 <path d={BODY_PATH} fill="url(#body-fade)" />
               </g>
 
@@ -212,7 +207,7 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
               {zones.map((z) => {
                 const sev = severityOf(z);
                 const alert = sev !== "NOMINAL";
-                const color = alert ? STATUS_STYLES[sev].hex : "#7CC7F2";
+                const color = alert ? STATUS_STYLES[sev].hex : "#245BCB";
                 return (
                   <g key={z} transform={turn(ZONES[z].depth)} onClick={() => !drag.current?.moved && toggle(z)} className="cursor-pointer">
                     {ORGAN_PATHS[z].map((d, i) => (
@@ -220,9 +215,9 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                         key={i}
                         d={d}
                         fill={color}
-                        fillOpacity={alert ? 0.24 : selected === z ? 0.16 : 0.07}
+                        fillOpacity={alert ? 0.2 : selected === z ? 0.16 : 0.07}
                         stroke={color}
-                        strokeOpacity={alert || selected === z ? 0.9 : 0.35}
+                        strokeOpacity={alert || selected === z ? 0.9 : 0.4}
                         strokeWidth="1"
                         vectorEffect="non-scaling-stroke"
                       />
@@ -240,7 +235,7 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                 const y = meta.marker[1];
                 const left = meta.side === "left";
                 const edge = left ? -8 : 208;
-                const color = sev === "NOMINAL" ? "#7CC7F2" : STATUS_STYLES[sev].hex;
+                const color = sev === "NOMINAL" ? "#245BCB" : STATUS_STYLES[sev].hex;
                 return (
                   <g key={`label-${z}`} aria-hidden>
                     <polyline
@@ -256,16 +251,17 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                       y={y - 3}
                       textAnchor={left ? "end" : "start"}
                       className="fill-ink"
-                      style={{ font: "600 10px var(--font-mono)", letterSpacing: "0.06em" }}
+                      style={{ font: "600 11px var(--font-display)", letterSpacing: "-0.01em" }}
                     >
-                      {meta.name.toUpperCase()}
+                      {meta.name}
                     </text>
                     <text
                       x={edge}
                       y={y + 10}
                       textAnchor={left ? "end" : "start"}
-                      fill={color}
-                      style={{ font: "500 9.5px var(--font-sans)" }}
+                      fill="currentColor"
+                      className={sev === "NOMINAL" ? "text-sky" : STATUS_STYLES[sev].text}
+                      style={{ font: "600 9.5px var(--font-sans)" }}
                     >
                       {STATUS_STYLES[sev].label}
                     </text>
@@ -279,16 +275,13 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                 const color = STATUS_STYLES[sev].hex;
                 const x = markerX(z);
                 const y = ZONES[z].marker[1];
-                const findings = grouped.get(z) ?? [];
                 return (
                   <g
                     key={`marker-${z}`}
                     role="button"
                     tabIndex={0}
                     aria-pressed={selected === z}
-                    aria-label={`${ZONES[z].name}: ${STATUS_STYLES[sev].label}. ${
-                      findings.map((h) => h.label).join("; ") || "No observation"
-                    }`}
+                    aria-label={`${ZONES[z].name}: ${STATUS_STYLES[sev].label}. Select to review this area.`}
                     className="cursor-pointer outline-none"
                     onClick={() => !drag.current?.moved && toggle(z)}
                     onKeyDown={(e) => {
@@ -308,12 +301,12 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
                         cy={y}
                         r="11.5"
                         fill="none"
-                        stroke="#7CC7F2"
+                        stroke="#245BCB"
                         strokeWidth="1.4"
                         strokeDasharray={focused === z && selected !== z ? "2 2" : undefined}
                       />
                     )}
-                    <circle cx={x} cy={y} r="4.6" fill="#0A1628" stroke={color} strokeWidth="1.6" />
+                    <circle cx={x} cy={y} r="4.6" fill="#FFFFFF" stroke={color} strokeWidth="1.8" />
                     <circle cx={x} cy={y} r="1.9" fill={color} />
                   </g>
                 );
@@ -345,7 +338,7 @@ export default function HumanBodyModel({ profile, selected, onSelect }: Props) {
             <button
               onClick={() => setAngle(0)}
               disabled={angle === 0}
-              className="num w-12 rounded-[3px] border border-line py-0.5 text-[11px] text-ink-soft transition hover:bg-raised disabled:opacity-50"
+              className="btn-ghost num w-14 justify-center py-1 text-[11px] text-ink-soft"
               aria-label="Reset rotation"
             >
               {angle > 0 ? `+${angle}` : angle}°

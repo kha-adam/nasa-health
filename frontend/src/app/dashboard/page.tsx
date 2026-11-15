@@ -9,15 +9,14 @@ import { api } from "@/lib/api";
 import { dashboardHref, openLog, type PanelMode } from "@/lib/metrics";
 import { useRequireUser, useTargetAstronaut } from "@/lib/session";
 import AppShell from "@/components/AppShell";
-import VitalsPanel, { TREND_RANGES, type TrendRange } from "@/components/VitalsPanel";
+import VitalsPanel from "@/components/VitalsPanel";
 import HumanBodyModel from "@/components/HumanBodyModel";
 import MindPanel from "@/components/MindPanel";
 import ObservationsPanel from "@/components/ObservationsPanel";
-import MentalReportsPanel from "@/components/MentalReportsPanel";
 import EventsPanel from "@/components/EventsPanel";
 import ExportDialog from "@/components/ExportDialog";
 import VoicePsychologistFab from "@/components/VoicePsychologistFab";
-import StatusBadge, { StatusGlyph } from "@/components/StatusBadge";
+import StatusBadge from "@/components/StatusBadge";
 import { ErrorScreen, FullScreenLoader } from "@/components/ScreenStates";
 
 export default function DashboardPage() {
@@ -40,7 +39,7 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-[4px] border border-line bg-rail/40 p-0.5">
+    <div role="radiogroup" aria-label={label} className="seg">
       {options.map(({ key, label: text, icon: Icon }) => {
         const active = value === key;
         return (
@@ -49,9 +48,7 @@ function Segmented<T extends string>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(key)}
-            className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-1.5 text-[13px] font-medium transition ${
-              active ? "bg-nasa text-white ring-1 ring-sky/40" : "text-ink-soft hover:bg-raised hover:text-ink"
-            }`}
+            className="seg-option"
           >
             {Icon && <Icon className="h-3.5 w-3.5" aria-hidden />}
             {text}
@@ -73,10 +70,8 @@ function Dashboard() {
   const [catalog, setCatalog] = useState<MetricDefinition[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<PanelMode>("physical");
-  const [range, setRange] = useState<TrendRange>("7d");
   const [selected, setSelected] = useState<BodyZone | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  const [freshReportId, setFreshReportId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!astronautId) return;
@@ -114,19 +109,7 @@ function Dashboard() {
 
   const handleReportGenerated = useCallback((report: MentalHealthReport) => {
     setProfile((p) => (p ? { ...p, mental_reports: [report, ...p.mental_reports.filter((r) => r.id !== report.id)] } : p));
-    setFreshReportId(report.id);
   }, []);
-
-  const handleEarthReply = useCallback(
-    async (reportId: string) => {
-      if (!astronautId) return;
-      const updated = await api.simulateEarthReply(astronautId, reportId);
-      setProfile((p) =>
-        p ? { ...p, mental_reports: p.mental_reports.map((r) => (r.id === updated.id ? updated : r)) } : p,
-      );
-    },
-    [astronautId],
-  );
 
   const failure = sessionError ?? error;
   if (failure) return <ErrorScreen message={failure} onRetry={sessionError ? retry : load} />;
@@ -139,28 +122,18 @@ function Dashboard() {
       active="overview"
       onLogout={logout}
       onOpenLog={asSurgeon ? undefined : openLog}
-      fit
+      minimalHeader
     >
-      {/* Who is followed, which view, which period */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line px-4 py-3 md:px-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="num flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] bg-nasa text-sm font-semibold text-white ring-1 ring-sky/30">
-            {profile.avatar_initials}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h1 className="truncate text-lg font-semibold leading-tight text-ink">{profile.name}</h1>
-              <StatusBadge status={profile.status_tag} />
-            </div>
-            <p className="mt-0.5 truncate text-[13px] text-ink-soft">
-              {profile.role} <span className="num text-ink-faint">· {profile.id}</span>
-            </p>
+      {/* Who is followed and which view */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-1 pb-3 pt-0.5 md:px-2">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <div className="orb-disc num h-11 w-11 text-sm font-semibold">{profile.avatar_initials}</div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+            <h1 className="truncate text-[22px] font-medium leading-tight tracking-[-0.02em] text-ink">{profile.name}</h1>
+            <StatusBadge status={profile.status_tag} />
           </div>
           {asSurgeon && (
-            <Link
-              href="/crew"
-              className="ml-1 inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line px-2.5 py-1.5 text-xs font-medium text-ink-soft transition hover:bg-raised hover:text-ink"
-            >
+            <Link href="/crew" className="btn-ghost ml-1 shrink-0 px-3 py-1.5 text-xs">
               <Users className="h-3.5 w-3.5" aria-hidden /> Switch astronaut
             </Link>
           )}
@@ -177,64 +150,37 @@ function Dashboard() {
         />
 
         <div className="flex flex-wrap items-center gap-3 lg:ml-auto">
-          <span className="eyebrow hidden sm:inline">Period</span>
-          <Segmented
-            label="Trend period"
-            value={range}
-            onChange={setRange}
-            options={TREND_RANGES.map((r) => ({ key: r.key, label: r.label }))}
-          />
-          <button
-            onClick={() => setExportOpen(true)}
-            className="inline-flex items-center gap-2 rounded-[4px] border border-line-strong px-3 py-1.5 text-[13px] font-medium text-ink transition hover:bg-raised"
-          >
+          <button onClick={() => setExportOpen(true)} className="btn-ghost h-9 px-3.5 text-[13px] shadow-[0_1px_1px_rgb(30_45_58/0.06)]">
             <Download className="h-3.5 w-3.5 text-sky" aria-hidden /> Export report
           </button>
         </div>
       </div>
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-x-4 gap-y-3 p-4 pb-24 md:grid-cols-2 md:px-5 lg:grid-cols-[minmax(0,30fr)_minmax(0,38fr)_minmax(0,32fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:pb-4">
-        {/* One-line status: first on small screens, above the body on desktop */}
-        <p className="flex items-start gap-2 px-1 text-[13px] leading-snug text-ink-soft md:col-span-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
-          <span className="mt-1">
-            <StatusGlyph status={profile.status_tag} />
-          </span>
-          {profile.status_summary}
-        </p>
-
-        {/* Left: trends */}
-        <div className="order-1 flex min-h-0 flex-col lg:col-start-1 lg:row-span-2 lg:row-start-1 [&>section]:flex-1">
-          <VitalsPanel profile={profile} panel={panel} catalog={catalog} asSurgeon={asSurgeon} range={range} />
+      <main className="grid w-full flex-1 grid-cols-1 items-start gap-3 pb-28 md:grid-cols-2 lg:grid-cols-[minmax(0,30fr)_minmax(0,38fr)_minmax(0,32fr)]">
+        {/* Left: short status overview. */}
+        <div className="min-w-0">
+          <VitalsPanel profile={profile} panel={panel} catalog={catalog} asSurgeon={asSurgeon} />
         </div>
 
-        {/* Right: context & observations (before the model on phones) */}
-        <div className="order-2 flex min-h-0 flex-col gap-4 md:order-3 md:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:pb-14">
-          <ObservationsPanel
-            profile={profile}
-            asSurgeon={asSurgeon}
-            selected={selected}
-            onSelect={setSelected}
-            onShowPanel={showPanel}
-          />
-          {asSurgeon ? (
-            <EventsPanel profile={profile} asSurgeon grow />
-          ) : (
-            <MentalReportsPanel
-              reports={profile.mental_reports}
-              onSimulateEarthReply={handleEarthReply}
-              freshReportId={freshReportId}
-              limit={2}
-            />
-          )}
-        </div>
-
-        {/* Centre: body (physical) or mind (mental) */}
-        <div className="order-3 flex min-h-[560px] flex-col md:order-2 lg:col-start-2 lg:row-start-2 lg:min-h-0">
+        {/* Centre: body (physical) or mind (mental). */}
+        <div className="flex min-h-[560px] min-w-0 flex-col md:col-start-2 md:row-start-1 lg:col-start-2">
           {panel === "physical" ? (
             <HumanBodyModel profile={profile} selected={selected} onSelect={setSelected} />
           ) : (
-            <MindPanel profile={profile} asSurgeon={asSurgeon} onOpenLog={asSurgeon ? undefined : openLog} />
+            <MindPanel profile={profile} catalog={catalog} asSurgeon={asSurgeon} onOpenLog={asSurgeon ? undefined : openLog} />
           )}
+        </div>
+
+        {/* Right: only findings needing attention; reports stay in the Reports section. */}
+        <div className="flex min-w-0 flex-col gap-3 md:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-start-1">
+          <ObservationsPanel
+            profile={profile}
+            catalog={catalog}
+            asSurgeon={asSurgeon}
+            selected={selected}
+            onSelect={setSelected}
+          />
+          {asSurgeon && <EventsPanel profile={profile} asSurgeon />}
         </div>
       </main>
 

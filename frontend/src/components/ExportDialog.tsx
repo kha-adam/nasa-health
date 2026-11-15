@@ -153,29 +153,29 @@ export default function ExportDialog({ open, onClose, profile, catalog, asSurgeo
       ref={ref}
       onClose={onClose}
       aria-labelledby="export-title"
-      className="m-auto w-[min(560px,calc(100vw-32px))] rounded-[6px] border border-line-strong bg-card p-0 text-ink shadow-[var(--shadow-pop)] backdrop:bg-rail/70"
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(580px,calc(100vw-24px))] overflow-hidden rounded-[28px] border border-line bg-white p-0 text-ink shadow-[var(--shadow-pop)] backdrop:bg-[rgb(12_40_90/0.28)] backdrop:backdrop-blur-[2px]"
     >
-      <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+      <header className="relative flex items-start justify-between gap-3 overflow-hidden border-b border-line bg-[radial-gradient(100%_140%_at_100%_0%,#d9ecff_0%,#f4faff_45%,#ffffff_80%)] px-6 pb-4 pt-5">
         <div>
-          <p className="eyebrow">Export</p>
-          <h2 id="export-title" className="mt-0.5 text-base font-semibold">
+          <p className="pill">Export</p>
+          <h2 id="export-title" className="mt-2.5 text-[22px] font-normal tracking-[-0.02em]">
             Report for {profile.name}
           </h2>
         </div>
-        <button onClick={onClose} aria-label="Close export" className="rounded-[4px] p-1.5 text-ink-faint hover:bg-raised hover:text-ink">
+        <button onClick={onClose} aria-label="Close export" className="btn-ghost h-9 w-9 shrink-0 justify-center p-0 text-ink-soft">
           <X className="h-4 w-4" />
         </button>
       </header>
 
-      <div className="thin-scroll max-h-[min(70vh,620px)] space-y-5 overflow-y-auto px-5 py-4">
+      <div className="thin-scroll max-h-[min(62dvh,600px)] space-y-6 overflow-y-auto px-6 py-5">
         <fieldset>
           <legend className="eyebrow">Period</legend>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {PERIODS.map((p) => (
               <label
                 key={p.key}
-                className={`flex cursor-pointer items-center gap-2 rounded-[4px] border px-3 py-2 text-sm transition ${
-                  period === p.key ? "border-sky bg-tint" : "border-line hover:bg-raised"
+                className={`flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                  period === p.key ? "border-sky/50 bg-tint text-ink ring-1 ring-inset ring-sky/30" : "border-line bg-white hover:bg-raised"
                 }`}
               >
                 <input
@@ -198,7 +198,7 @@ export default function ExportDialog({ open, onClose, profile, catalog, asSurgeo
           <legend className="eyebrow">Include</legend>
           <div className="mt-2 grid gap-1">
             {sections.map((s) => (
-              <label key={s.key} className="flex cursor-pointer items-start gap-3 rounded-[4px] px-2 py-1.5 hover:bg-raised">
+              <label key={s.key} className="flex cursor-pointer items-start gap-3 rounded-[14px] px-3 py-2 hover:bg-raised">
                 <input
                   type="checkbox"
                   className="mt-1 accent-sky"
@@ -206,7 +206,7 @@ export default function ExportDialog({ open, onClose, profile, catalog, asSurgeo
                   onChange={(e) => setInclude({ ...include, [s.key]: e.target.checked })}
                 />
                 <span>
-                  <span className="block text-sm">{s.label}</span>
+                  <span className="block text-sm font-medium">{s.label}</span>
                   <span className="block text-[12px] text-ink-faint">{s.hint}</span>
                 </span>
               </label>
@@ -219,7 +219,7 @@ export default function ExportDialog({ open, onClose, profile, catalog, asSurgeo
             <legend className="eyebrow">Measurements</legend>
             <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 sm:grid-cols-3">
               {available.map((m) => (
-                <label key={m.key} className="flex cursor-pointer items-center gap-2 rounded-[3px] px-1.5 py-1 text-[13px] text-ink-soft hover:bg-raised hover:text-ink">
+                <label key={m.key} className="flex cursor-pointer items-center gap-2 rounded-[10px] px-2 py-1 text-[13px] text-ink-soft hover:bg-raised hover:text-ink">
                   <input type="checkbox" className="accent-sky" checked={metrics.has(m.key)} onChange={() => toggleMetric(m.key)} />
                   <span className="truncate">{m.label}</span>
                 </label>
@@ -229,25 +229,27 @@ export default function ExportDialog({ open, onClose, profile, catalog, asSurgeo
         )}
 
         {error && (
-          <p role="alert" className="rounded-[4px] bg-urgent/10 px-3 py-2 text-xs text-urgent">
+          <p role="alert" className="rounded-[14px] bg-urgent-soft px-3.5 py-2 text-xs text-urgent ring-1 ring-inset ring-urgent-line">
             {error}
           </p>
         )}
       </div>
 
-      <footer className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-[#f7fbfe] px-6 py-4">
         <p className="text-[12px] text-ink-faint">Markdown file · stays on this device</p>
         <div className="flex gap-2">
-          <button onClick={onClose} className="rounded-[4px] border border-line px-3 py-1.5 text-sm text-ink-soft hover:bg-raised hover:text-ink">
+          <button onClick={onClose} className="btn-ghost h-10 px-4 text-sm">
             Cancel
           </button>
           <button
             onClick={build}
             disabled={busy || (include.readings && metrics.size === 0) || !Object.values(include).some(Boolean)}
-            className="inline-flex items-center gap-2 rounded-[4px] bg-sky px-3.5 py-1.5 text-sm font-semibold text-rail transition hover:bg-sky-hover disabled:opacity-50"
+            className="btn-cta h-10 pl-4 pr-1 text-sm"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
             Export
+            <span className="cta-disc h-8 w-8">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
+            </span>
           </button>
         </div>
       </footer>

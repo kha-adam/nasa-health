@@ -27,6 +27,8 @@ interface Props {
   onOpenLog?: () => void;
   /** Lock the page to the viewport on large screens (dashboard). */
   fit?: boolean;
+  /** Keep the overview header focused on the brand and sign-out action. */
+  minimalHeader?: boolean;
   children: React.ReactNode;
 }
 
@@ -53,16 +55,19 @@ function navItems(user: SessionUser, profile: AstronautProfile | null | undefine
 function NavEntry({ item, active, compact }: { item: NavItem; active: boolean; compact?: boolean }) {
   const Icon = item.icon;
   const cls = compact
-    ? `flex h-10 items-center gap-2 rounded-[4px] px-3 text-xs font-medium transition ${
-        active ? "bg-tint text-ink" : "text-ink-soft hover:bg-raised hover:text-ink"
+    ? `flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition ${
+        active
+          ? "bg-[linear-gradient(180deg,#2f6bc4,#2356c2)] text-white shadow-[0_3px_5px_rgb(29_90_164/0.18)]"
+          : "border border-line bg-white text-ink-soft hover:bg-raised hover:text-ink"
       }`
-    : `group relative flex w-full flex-col items-center gap-1 rounded-[4px] py-2.5 text-[10px] font-medium tracking-wide transition ${
-        active ? "bg-tint text-ink" : "text-ink-faint hover:bg-raised hover:text-ink"
+    : `group relative flex w-full flex-col items-center gap-1 rounded-[18px] py-2.5 text-[11px] font-medium transition ${
+        active
+          ? "bg-[linear-gradient(180deg,#2f6bc4,#2356c2)] text-white shadow-[0_6px_14px_-6px_rgb(29_90_164/0.6),inset_0_1px_1px_rgb(255_255_255/0.22)]"
+          : "text-ink-soft hover:bg-raised hover:text-ink"
       }`;
   const body = (
     <>
-      {!compact && active && <span className="absolute inset-y-2 left-0 w-0.5 rounded-r bg-sky" aria-hidden />}
-      <Icon className={compact ? "h-4 w-4" : `h-[18px] w-[18px] ${active ? "text-sky" : ""}`} aria-hidden />
+      <Icon className={compact ? "h-4 w-4" : "h-[18px] w-[18px]"} aria-hidden />
       {item.label}
     </>
   );
@@ -77,8 +82,8 @@ function NavEntry({ item, active, compact }: { item: NavItem; active: boolean; c
   );
 }
 
-/** Narrow navigation rail + mission bar around every signed-in page. */
-export default function AppShell({ user, profile, mission, active, onLogout, onOpenLog, fit, children }: Props) {
+/** Navigation rail + mission bar around every signed-in page. */
+export default function AppShell({ user, profile, mission, active, onLogout, onOpenLog, fit, minimalHeader, children }: Props) {
   const items = navItems(user, profile, onOpenLog);
   const clock: MissionClock | null = profile
     ? {
@@ -89,25 +94,27 @@ export default function AppShell({ user, profile, mission, active, onLogout, onO
     : (mission ?? null);
 
   return (
-    <div className={`flex min-h-screen ${fit ? "lg:h-screen lg:overflow-hidden" : ""}`}>
+    <div className={`flex min-h-screen gap-3 p-3 ${fit ? "lg:h-screen lg:overflow-hidden" : ""}`}>
       <nav
         aria-label="Main"
-        className="hidden w-[72px] shrink-0 flex-col items-center gap-1 border-r border-line bg-rail px-2 pb-3 md:flex md:sticky md:top-0 md:h-screen"
+        className="hidden w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[24px] border border-line bg-rail/90 px-2 pb-3 pt-3 shadow-[var(--shadow-card)] md:sticky md:top-3 md:flex md:h-[calc(100vh-24px)]"
       >
-        <div
-          className="mb-3 mt-2.5 flex h-8 w-8 items-center justify-center rounded-[4px] bg-nasa text-[13px] font-bold text-white ring-1 ring-sky/40"
-          aria-hidden
-        >
-          <span className="num">B</span>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- small pre-sized decorative asset */}
+        <img
+          src="/brand/chrome-sphere.webp"
+          alt=""
+          width={40}
+          height={40}
+          className="mb-3 h-10 w-10 drop-shadow-[0_6px_10px_rgba(12,71,109,0.3)]"
+        />
         {items.map((item) => (
           <NavEntry key={item.key} item={item} active={item.key === active} />
         ))}
       </nav>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopNavBar user={user} mission={clock} onLogout={onLogout} />
-        <nav aria-label="Main" className="thin-scroll flex gap-1 overflow-x-auto border-b border-line bg-rail px-3 py-1.5 md:hidden">
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <TopNavBar user={user} mission={clock} onLogout={onLogout} minimal={minimalHeader} />
+        <nav aria-label="Main" className="thin-scroll -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 md:hidden">
           {items.map((item) => (
             <NavEntry key={item.key} item={item} active={item.key === active} compact />
           ))}

@@ -1,50 +1,85 @@
 @import "tailwindcss";
 
 /*
- * BLUE / Crew Health — night-navy mission console (AGENTS.md §1).
- * Night-blue canvas, light-blue accents, NASA blue (#0B3D91) and NASA red (#FC3D21),
- * medical teal for "normal". Text contrast is ≥ 4.5:1 on every surface below.
+ * BLUE / Crew Health — light "glacier" theme adapted from the SphereAI reference:
+ * white and glacier-blue surfaces (#E8F7FF), cobalt accent (#245BCB), near-black ink
+ * (#151515), Manrope headings over an Inter interface, generous radii (up to 28 px)
+ * and fine borders. Large gradients and imagery stay in decorative areas; data, charts,
+ * reports and forms sit on stable white surfaces. Text is ≥ 4.5:1 on every surface
+ * below, status graphics ≥ 3:1, and status is always shape + word.
+ *
+ * Token names are kept from the previous theme so every component keeps its meaning:
+ * "sky" is the interactive accent (now cobalt), "rail" the navigation surfaces.
  */
 @theme {
-  --color-canvas: #0a1628; /* page background (bleu nuit) */
-  --color-rail: #060f1d; /* navigation rail + top bar */
-  --color-card: #0f1f36; /* panels */
-  --color-raised: #152946; /* hover, inputs, nested surfaces */
-  --color-line: #1e3556; /* hairline separators */
-  --color-line-strong: #2c4a73;
+  --color-canvas: #f3f9fd; /* page background (glacier white) */
+  --color-rail: #ffffff; /* navigation rail */
+  --color-card: #ffffff; /* panels */
+  --color-raised: #f1f7fc; /* hover, inputs, nested surfaces */
+  --color-line: #e3eaf0; /* hairline borders */
+  --color-line-strong: #d2dee8;
 
-  --color-ink: #e6eef8; /* primary text */
-  --color-ink-soft: #9ab0cb; /* secondary text */
-  --color-ink-faint: #7890ae; /* tertiary labels */
+  --color-ink: #151515; /* primary text */
+  --color-ink-soft: #545f65; /* secondary text (template grey, darkened for legibility) */
+  --color-ink-faint: #5e686e; /* labels (≥ 4.5:1 on every light surface, incl. glacier gradients) */
 
-  --color-sky: #7cc7f2; /* light-blue accent: links, focus, selection */
-  --color-sky-hover: #a8dbf7;
-  --color-tint: #13304f; /* selected background */
-  --color-tint-strong: #1d4470;
+  --color-sky: #245bcb; /* cobalt accent: links, focus, selection */
+  --color-sky-hover: #1b4aae;
+  --color-tint: #eaf3fe; /* selected background */
+  --color-tint-strong: #d6e7fc;
+  --color-glacier: #e8f7ff;
+  --color-cobalt: #245bcb;
+  --color-night: #030509; /* CTA surface */
   --color-nasa: #0b3d91; /* NASA blue */
   --color-nasa-red: #fc3d21; /* NASA red */
 
-  --color-nominal: #3cc8ae; /* medical teal */
-  --color-advisory: #edb04f; /* amber: to review */
-  --color-urgent: #fc3d21; /* reserved for alerts that justify it */
+  /* Status text tones (≥ 4.5:1 on white and on their 10 % tint). Graphics use the
+     brighter STATUS_STYLES.hex values in lib/metrics.ts. */
+  --color-nominal: #0a7563;
+  --color-advisory: #8f5600;
+  --color-urgent: #c0291a;
+  /* Soft status surfaces and rims (alert rows, badges). */
+  --color-nominal-soft: #e9f7f3;
+  --color-advisory-soft: #fff5e3;
+  --color-urgent-soft: #fdecea;
+  --color-nominal-line: #a6dccf;
+  --color-advisory-line: #ecc77c;
+  --color-urgent-line: #f2b1a8;
 
-  --shadow-card: 0 1px 0 rgb(0 0 0 / 0.25);
-  --shadow-pop: 0 12px 40px rgb(2 8 20 / 0.55);
+  --radius-card: 24px;
+  --radius-envelope: 28px;
+  --radius-control: 14px;
+
+  --shadow-card: 0 2px 1px rgb(80 101 109 / 0.08), 0 14px 32px -20px rgb(12 71 109 / 0.28);
+  --shadow-pop: 0 16px 36px rgb(0 32 72 / 0.2), 0 2px 6px rgb(0 32 72 / 0.08);
 }
 
 @theme inline {
-  --font-sans: var(--font-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), "Manrope", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Measures, times and identifiers: Inter with tabular figures (see .num). */
+  --font-mono: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-html,
-body {
+html {
   background: var(--color-canvas);
+}
+
+body {
   color: var(--color-ink);
+  background: linear-gradient(180deg, #e8f7ff 0%, #f4faff 20%, #ffffff 46%, #f6fbff 76%, #e8f7ff 100%) fixed;
+  font-feature-settings: "cv11" 1;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 ::selection {
@@ -57,33 +92,233 @@ body {
   outline-offset: 2px;
 }
 
-/* Panels: thin border, small radius, almost no shadow. */
-.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-radius: 6px;
-  box-shadow: var(--shadow-card);
+/* On the cobalt mission band the focus ring turns white to stay visible. */
+.topbar :focus-visible {
+  outline-color: #ffffff;
 }
 
-/* Instrument label: small caps style used for section headers and units. */
-.eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-ink-faint);
-}
+@layer components {
+  /* Panels: white envelope, fine border, generous radius (SphereAI cards). */
+  .card {
+    background: linear-gradient(160deg, #ffffff 0%, #ffffff 58%, #f6fbfe 100%);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
 
-/* Measures, times and identifiers. */
-.num {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "zero" 0;
-}
+  /* Section label: quiet sentence-case caption. */
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--color-ink-faint);
+  }
 
-.thin-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-line-strong) transparent;
+  /* Rounded badge (SphereAI "Our Goals" pill). */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+    padding: 3px 11px;
+    border: 1px solid #e3e9ee;
+    border-radius: 999px;
+    background: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--color-ink-soft);
+    box-shadow: 0 1px 1px rgb(30 45 58 / 0.06);
+    white-space: nowrap;
+  }
+
+  /* Measures, times and identifiers. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+
+  .thin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #c9d6e1 transparent;
+  }
+
+  /* Primary call to action: black pill with the cyan → cobalt gradient rim. */
+  .btn-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background:
+      linear-gradient(var(--color-night), var(--color-night)) padding-box,
+      linear-gradient(130deg, #72f9ff 0%, #154da7 42%, #9abbf3 100%) border-box;
+    color: #ffffff;
+    font-weight: 500;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+    box-shadow: 0 6px 16px -8px rgb(3 5 9 / 0.6);
+  }
+  .btn-cta:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -10px rgb(21 77 167 / 0.7);
+  }
+  .btn-cta:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* The small round arrow disc inside a CTA. */
+  .cta-disc {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 999px;
+    background: #070b10;
+    color: #ffffff;
+  }
+
+  /* Secondary action: white pill. */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--color-ink);
+    font-weight: 500;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-raised);
+    border-color: #bfd0de;
+  }
+  .btn-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Accent action on light surfaces: glacier pill with cobalt text. */
+  .btn-soft {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #cfe0f6;
+    border-radius: 999px;
+    background: #eef5fe;
+    color: var(--color-sky);
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+  }
+  .btn-soft:hover:not(:disabled) {
+    background: #e1edfd;
+    color: var(--color-sky-hover);
+  }
+  .btn-soft:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Segmented control (radiogroup / tablist). */
+  .seg {
+    display: flex;
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: #eef5fb;
+  }
+  .seg-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-ink-soft);
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .seg-option:hover {
+    color: var(--color-ink);
+    background: rgb(255 255 255 / 0.75);
+  }
+  .seg-option[aria-checked="true"],
+  .seg-option[aria-selected="true"] {
+    color: #ffffff;
+    background: linear-gradient(180deg, #2f6bc4 0%, #2356c2 100%);
+    box-shadow:
+      0 3px 5px rgb(29 90 164 / 0.16),
+      inset 0 1px 1px rgb(255 255 255 / 0.22);
+  }
+
+  /* Text field (SphereAI contact form). */
+  .field {
+    width: 100%;
+    border: 1px solid #d7e3eb;
+    border-radius: var(--radius-control);
+    background: #f7fbfe;
+    color: var(--color-ink);
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .field:focus,
+  .field:focus-visible {
+    border-color: #2a6ccf;
+    box-shadow: 0 0 0 3px rgb(42 108 207 / 0.16);
+    outline: none;
+  }
+
+  /* Round badge with the cobalt glass gradient (SphereAI feature icon). */
+  .orb-disc {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #65cce9;
+    border-radius: 999px;
+    background: radial-gradient(80% 90% at 70% 20%, #b3e6f9 0%, #1b719b 38%, #043c75 72%, #246ca3 100%);
+    color: #ffffff;
+    box-shadow:
+      0 7px 14px rgb(12 71 109 / 0.3),
+      inset 0 1px 3px rgb(255 255 255 / 0.7);
+    text-shadow: 0 1px 2px rgb(2 30 60 / 0.55);
+  }
+
+  /* Cobalt mission band (top bar). */
+  .topbar {
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgb(114 249 255 / 0.18) 0%, rgb(114 249 255 / 0) 42%),
+      linear-gradient(115deg, #2a63c3 0%, #2559c2 48%, #1d4bae 100%);
+    box-shadow:
+      0 10px 26px -16px rgb(17 63 150 / 0.65),
+      inset 0 1px 0 rgb(255 255 255 / 0.22);
+  }
+
+  /* Decorative image envelope (non-clinical spaces only). */
+  .envelope {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-envelope);
+    background-color: #2c63c4;
+    background-size: cover;
+    background-position: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -91,6 +326,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
@@ -98,40 +334,44 @@ body {
 /* Rotation ruler (body model) */
 .ruler {
   appearance: none;
-  height: 18px;
+  height: 22px;
   background: transparent;
   cursor: pointer;
 }
 .ruler::-webkit-slider-runnable-track {
-  height: 1px;
-  background: repeating-linear-gradient(90deg, var(--color-line-strong) 0 1px, transparent 1px 100%) 0 0 / 8.33% 100%,
-    var(--color-line-strong);
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d6e7fc, #9cc0ef 50%, #d6e7fc);
 }
 .ruler::-moz-range-track {
-  height: 1px;
-  background: var(--color-line-strong);
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d6e7fc, #9cc0ef 50%, #d6e7fc);
 }
 .ruler::-webkit-slider-thumb {
   appearance: none;
-  width: 12px;
-  height: 12px;
-  margin-top: -6px;
-  border: 2px solid var(--color-sky);
-  border-radius: 2px;
-  background: var(--color-canvas);
-  transform: rotate(45deg);
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2f6bc4, #2356c2);
+  box-shadow: 0 2px 6px rgb(17 63 150 / 0.4);
 }
 .ruler::-moz-range-thumb {
-  width: 9px;
-  height: 9px;
-  border: 2px solid var(--color-sky);
-  border-radius: 2px;
-  background: var(--color-canvas);
-  transform: rotate(45deg);
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2f6bc4, #2356c2);
+  box-shadow: 0 2px 6px rgb(17 63 150 / 0.4);
 }
 .ruler:focus-visible {
   outline: none;
 }
 .ruler:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px var(--color-tint-strong);
+  box-shadow: 0 0 0 4px rgb(36 91 203 / 0.25);
+}
+.ruler:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgb(36 91 203 / 0.25);
 }

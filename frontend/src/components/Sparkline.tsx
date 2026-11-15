@@ -79,11 +79,11 @@ export default function Sparkline({ history, height = 40 }: Props) {
     body = (
       <svg width={width} height={height} aria-hidden className="block overflow-visible">
         {limits.map((v) => (
-          <line key={v} x1={0} x2={width} y1={y(v)} y2={y(v)} stroke="#EDB04F" strokeOpacity={0.55} strokeDasharray="3 3" />
+          <line key={v} x1={0} x2={width} y1={y(v)} y2={y(v)} stroke="#C47F0A" strokeOpacity={0.6} strokeDasharray="3 3" />
         ))}
         <path d={d} fill="none" stroke={SERIES_COLORS[0]} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
         {values[last] != null && (
-          <circle cx={x(last)} cy={y(values[last] as number)} r={3} fill="#E6EEF8" stroke="#0F1F36" strokeWidth={1.5} />
+          <circle cx={x(last)} cy={y(values[last] as number)} r={3.5} fill="#FFFFFF" stroke={SERIES_COLORS[0]} strokeWidth={2} />
         )}
       </svg>
     );
@@ -96,7 +96,7 @@ export default function Sparkline({ history, height = 40 }: Props) {
         {body ??
           (width > 0 && (
             <svg width={width} height={height} aria-hidden>
-              <line x1="0" x2={width} y1={height / 2} y2={height / 2} stroke="#2C4A73" strokeDasharray="2 3" />
+              <line x1="0" x2={width} y1={height / 2} y2={height / 2} stroke="#C9D6E1" strokeDasharray="2 3" />
             </svg>
           ))}
       </div>
