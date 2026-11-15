@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import httpx
@@ -22,21 +23,44 @@ def _settings() -> dict[str, str]:
 
 
 def speech_status() -> dict[str, object]:
-    return {"voice_enabled": bool(_settings().get("FISH_API_KEY")), "fallback": "browser_or_text"}
+    settings = _settings()
+    return {"voice_enabled": bool(settings.get("FISH_TTS_API_KEY") or settings.get("FISH_API_KEY")), "fallback": "browser_or_text"}
+
+
+def _tts_payload(text: str, settings: dict[str, str]) -> dict:
+    return {"text": text, "reference_id": settings.get("FISH_VOICE_ID", "933563129e564b19a115bedd57b7406a"),
+            "format": "mp3", "latency": "low", "chunk_length": 100, "prosody": {"speed": 1.12}}
+
+
+async def stream_synthesis(text: str) -> AsyncIterator[bytes]:
+    settings = _settings()
+    key = settings.get("FISH_TTS_API_KEY") or settings.get("FISH_API_KEY")
+    if not key:
+        return
+    async with httpx.AsyncClient(timeout=httpx.Timeout(12, connect=4)) as client:
+        async with client.stream(
+            "POST", "https://api.fish.audio/v1/tts",
+            headers={"Authorization": f"Bearer {key}", "model": "s2.1-pro-free"},
+            json=_tts_payload(text, settings),
+        ) as response:
+            response.raise_for_status()
+            if response.headers.get("content-type", "").startswith("audio/"):
+                async for chunk in response.aiter_bytes():
+                    yield chunk
 
 
 async def synthesize(text: str) -> bytes | None:
     settings = _settings()
-    if not settings.get("FISH_API_KEY"):
+    key = settings.get("FISH_TTS_API_KEY") or settings.get("FISH_API_KEY")
+    if not key:
         return None
     try:
-        async with asyncio.timeout(5):
-            async with httpx.AsyncClient(timeout=4.8) as client:
+        async with asyncio.timeout(15):
+            async with httpx.AsyncClient(timeout=14.5) as client:
                 response = await client.post(
                     "https://api.fish.audio/v1/tts",
-                    headers={"Authorization": f"Bearer {settings['FISH_API_KEY']}", "model": "s2.1-pro-free"},
-                    json={"text": text, "reference_id": settings.get("FISH_VOICE_ID", "933563129e564b19a115bedd57b7406a"),
-                          "format": "mp3", "latency": "low", "prosody": {"speed": 0.95}},
+                    headers={"Authorization": f"Bearer {key}", "model": "s2.1-pro-free"},
+                    json=_tts_payload(text, settings),
                 )
                 response.raise_for_status()
                 if not response.headers.get("content-type", "").startswith("audio/"):
@@ -67,8 +91,29 @@ async def transcribe(audio: bytes) -> str | None:
         return None
 
 
+async def transcribe_turn(audio: bytes) -> str | None:
+    """Transcribe audio from an active check-in."""
+    key = os.environ.get("GROQ_API_KEY")
+    if not key:
+        return await transcribe(audio)
+    try:
+        async with asyncio.timeout(5):
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {key}"},
+                    files={"file": ("microphone.wav", audio, "audio/wav")},
+                    data={"model": "whisper-large-v3-turbo", "response_format": "json"},
+                )
+                response.raise_for_status()
+                text = response.json().get("text")
+                return text.strip() if isinstance(text, str) else None
+    except (httpx.HTTPError, TimeoutError, ValueError):
+        return None
+
+
 VOICE_SYSTEM_PROMPT = """You are BLUE, the astronaut's calm, attentive AI companion and aerospace psychology check-in assistant.
-Always respond to what the person actually says before asking a check-in question. Never ignore a question to advance a survey.
+Always respond to what the person actually says. Start with a direct answer, focused follow-up, or practical next step tied to the user’s words. Skip canned sympathy and filler such as “I’m sorry to hear that” or “I’m sorry you’re not feeling good”. Never ignore a question to advance a survey.
 For example, if asked 'How are you doing today?', answer warmly: 'I'm here and ready to help—thanks for asking! How are you feeling today?'
 Be honest that you are an AI; do not claim human experiences or feelings. Speak naturally in the user's language, including English and French.
 Keep spoken replies concise, normally one to three short sentences, but explain more when asked. Ask at most one question at a time. No artificial delays or long preambles.
@@ -119,7 +164,7 @@ async def create_voice_session(profile: dict, messages: list[dict], greeting: bo
         "overrides": {
             "system_prompt": voice_prompt(profile, messages),
             "voice_id": settings.get("FISH_VOICE_ID", "933563129e564b19a115bedd57b7406a"),
-            "first_message": "Hi, how are you doing today? Ready to take your survey?" if greeting else "I'm here. Go ahead.",
+            "first_message": "Hey, I’m here with you. How has today been for you?" if greeting else "I'm here. Go ahead.",
         },
     }
     try:

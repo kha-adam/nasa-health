@@ -105,7 +105,7 @@ export const TRANSITIONS: Record<TransitionKind, ClipTiming & { media: { src: st
 
 export const TRANSITION_SETTINGS = {
   /** Login: open the destination once the wave veil is opaque (s). */
-  loginNavigateAt: 0.95,
+  loginNavigateAt: timeline.login.spin[1],
   /** Logout: leave the dashboard once sign-out is confirmed, not before BLUE has left its button (s). */
   logoutNavigateNotBefore: 0.5,
   /** Logout: the "Talk to Blue" label fades out above the veil. */

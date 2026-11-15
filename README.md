@@ -22,6 +22,12 @@ Open http://localhost:3000 and sign in. The frontend proxies `/api/*` to the bac
 (`BLUE_API_URL`, default `http://localhost:8000`, see `frontend/.env.example`), so the
 session cookie stays first-party.
 
+## Groq demo conversation
+
+Set `GROQ_API_KEY` in the backend environment, or put it in an ignored `backend/.env` file and start Uvicorn from `backend/` with `--env-file .env`.
+The dashboard uses GPT-OSS 20B for the conversation and Whisper Large V3 Turbo for microphone turns. Set FISH_TTS_API_KEY and FISH_VOICE_ID in the backend environment for Fish Audio spoken replies. The browser supplies spoken replies when Fish Audio is unavailable.
+With no key or when Groq is unavailable, the scripted check-in is available. Use simulated demo data for the cloud flow.
+
 ## Accounts & privacy
 
 | Username | Password (demo) | Role | Sees |

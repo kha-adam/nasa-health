@@ -28,14 +28,14 @@ _telemetry: dict[str, dict] = {}
 
 def load_seed(path: Path = SEED_PATH) -> None:
     """(Re)load the canonical crew from disk, discarding in-memory changes."""
-    raw = json.loads(path.read_text())
+    raw = json.loads(path.read_text(encoding="utf-8"))
     with _lock:
         _profiles.clear()
         _telemetry.clear()
         for item in raw:
             profile = AstronautProfile.model_validate(item)
             _profiles[profile.id] = profile
-            _telemetry[profile.id] = json.loads((TELEMETRY_DIR / f"{profile.id}.json").read_text())
+            _telemetry[profile.id] = json.loads((TELEMETRY_DIR / f"{profile.id}.json").read_text(encoding="utf-8"))
 
 
 def redact(profile: AstronautProfile) -> AstronautProfile:

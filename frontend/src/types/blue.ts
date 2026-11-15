@@ -204,6 +204,7 @@ export interface CheckinReward {
 
 export interface ChatResponse {
   reply: string;
+  reply_source?: "groq" | "offline" | null;
   session_mode: SessionMode;
   suggested_to_wrap_up: boolean;
   generated_report: MentalHealthReport | null;

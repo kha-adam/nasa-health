@@ -554,7 +554,7 @@ def main() -> None:
         (OUT_TELEMETRY / f"{profile['id']}.json").write_text(json.dumps(tele, separators=(",", ":")) + "\n")
         print(f"[info] {profile['id']}: {profile['status_tag']} — {profile['status_summary']}")
     validate(profiles)
-    OUT_PROFILES.write_text(json.dumps(profiles, indent=2, ensure_ascii=False) + "\n")
+    OUT_PROFILES.write_text(json.dumps(profiles, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"[ok] wrote {OUT_PROFILES.relative_to(ROOT)} and {OUT_TELEMETRY.relative_to(ROOT)}/*.json")
 
 

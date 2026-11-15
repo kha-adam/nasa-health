@@ -9,16 +9,20 @@ cookie; access rules live in core/auth.py.
 
 from __future__ import annotations
 
+import asyncio
 import os
+from secrets import token_urlsafe
+from time import monotonic
 from typing import Annotated
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Request, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+import httpx
 from pydantic import BaseModel, Field
 
 
-from core import auth, blue_context, crew_life, metrics, profiles, psychologist, report_generator, speech, telemetry
+from core import auth, blue_context, crew_life, groq_chat, metrics, profiles, psychologist, report_generator, speech, telemetry
 from schemas import (
     AstronautProfile,
     BlueActivityRequest,
@@ -190,7 +194,7 @@ def _user_messages(req: ChatRequest) -> int:
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest, user: User) -> ChatResponse:
+async def chat(req: ChatRequest, user: User) -> ChatResponse:
     profile = _require_private(user, req.astronaut_id)
     # Voice of the Station counts messages, never their content.
     if req.session_id or req.finish_session:
@@ -208,8 +212,13 @@ def chat(req: ChatRequest, user: User) -> ChatResponse:
             reward=crew_life.record_checkin(profile),
         )
 
+    mode = psychologist.determine_mode(profile, req.messages)
+    reply = await groq_chat.reply(profile, req.messages, mode)
+    if reply is not None:
+        return ChatResponse(reply=reply, session_mode=mode, suggested_to_wrap_up=False, reply_source="groq")
+
     reply, mode, wrap = psychologist.scripted_reply(profile, req.messages)
-    return ChatResponse(reply=reply, session_mode=mode, suggested_to_wrap_up=wrap, generated_report=None)
+    return ChatResponse(reply=reply, session_mode=mode, suggested_to_wrap_up=wrap, reply_source="offline")
 
 
 @app.post("/api/astronauts/{astronaut_id}/reports/{report_id}/earth-reply", response_model=MentalHealthReport)
@@ -228,17 +237,55 @@ class SpeechRequest(BaseModel):
 
 
 @app.post("/api/speech")
-async def speak(req: SpeechRequest, user: User) -> Response:
+async def speak(req: SpeechRequest, user: User, stream: bool = False) -> Response:
     if user.role != "astronaut":
         raise HTTPException(status_code=403, detail="BLUE voice is private to the astronaut")
+    if stream:
+        now = monotonic()
+        for token, (_, _, expires) in list(_speech_tickets.items()):
+            if expires <= now:
+                del _speech_tickets[token]
+        if len(_speech_tickets) >= 128:
+            del _speech_tickets[next(iter(_speech_tickets))]
+        token = token_urlsafe(24)
+        _speech_tickets[token] = (user.username, req.text, now + 30)
+        return JSONResponse({"url": "/api/speech/" + token}, headers={"Cache-Control": "no-store"})
     audio = await speech.synthesize(req.text)
     if audio is None:
         raise HTTPException(status_code=503, detail="Voice unavailable; use browser speech or the text transcript.")
     return Response(audio, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
 
 
+# Single-use handles let the browser stream without putting check-in text in URLs.
+_speech_tickets: dict[str, tuple[str, str, float]] = {}
+
+
+@app.get("/api/speech/{token}")
+async def speak_stream(token: str, user: User) -> StreamingResponse:
+    ticket = _speech_tickets.get(token)
+    if ticket is None or ticket[0] != user.username or ticket[2] <= monotonic():
+        raise HTTPException(status_code=404, detail="Audio request expired.")
+    _, text, _ = _speech_tickets.pop(token)
+    chunks = speech.stream_synthesis(text)
+    try:
+        first = await asyncio.wait_for(anext(chunks), timeout=12)
+    except (StopAsyncIteration, TimeoutError, httpx.HTTPError):
+        await chunks.aclose()
+        raise HTTPException(status_code=503, detail="Voice unavailable; use browser speech or the text transcript.") from None
+
+    async def audio_stream():
+        try:
+            yield first
+            async for chunk in chunks:
+                yield chunk
+        finally:
+            await chunks.aclose()
+
+    return StreamingResponse(audio_stream(), media_type="audio/mpeg", headers={"Cache-Control": "no-store", "Accept-Ranges": "none"})
+
+
 @app.post("/api/transcribe")
-async def transcribe(user: User, audio: UploadFile = File(...)) -> dict[str, str]:
+async def transcribe(user: User, audio: UploadFile = File(...), wake: bool = False) -> dict[str, str]:
     if user.role != "astronaut":
         raise HTTPException(status_code=403, detail="BLUE voice is private to the astronaut")
     recording = await audio.read(2_000_001)
@@ -247,7 +294,7 @@ async def transcribe(user: User, audio: UploadFile = File(...)) -> dict[str, str
         raise HTTPException(status_code=413, detail="Recording is too large. Please use a shorter reply.")
     if not recording or not recording.startswith(b"RIFF") or recording[8:12] != b"WAVE":
         raise HTTPException(status_code=422, detail="A WAV microphone recording is required.")
-    text = await speech.transcribe(recording)
+    text = await speech.transcribe(recording) if wake else await speech.transcribe_turn(recording)
     if text is None:
         raise HTTPException(status_code=503, detail="Speech recognition unavailable. Please try again or type your reply.")
     return {"text": text}

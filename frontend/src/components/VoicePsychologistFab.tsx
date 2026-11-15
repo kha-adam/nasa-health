@@ -3,16 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Award, FileText, Keyboard, Mic, MicOff, Send, Sparkles, Star, Volume2, VolumeX, X, RotateCcw } from "lucide-react";
-import type { AgentSession as LiveSession, SessionToken } from "@fishaudio/agent-client";
 import type { AstronautId, ChatMessage, CheckinReward, MentalHealthReport } from "@/types/blue";
 import { api, API_BASE } from "@/lib/api";
 import { OPEN_LOG_EVENT } from "@/lib/metrics";
 import { browserSpeech, recognitionConstructor, WakeListener, isWakePhrase } from "@/lib/browserSpeech";
 import { HandsFreeCapture } from "@/lib/handsFreeCapture";
 import BlueOctopus, { moodFromText, type BlueMood } from "./BlueOctopus";
+import VoiceSubtitle from "./VoiceSubtitle";
 import styles from "./VoicePsychologistFab.module.css";
 
-const GREETING = "Hi, how are you doing today? Ready to take your survey?";
 interface Props { astronautId: AstronautId; astronautName: string; onReportGenerated: (report: MentalHealthReport) => void; }
 interface Turn extends ChatMessage { id: string; final: boolean; }
 type Phase = "idle" | "connecting" | "listening" | "thinking" | "speaking";
@@ -38,19 +37,16 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const dialog = useRef<HTMLDialogElement>(null);
   const fab = useRef<HTMLButtonElement>(null);
   const character = useRef<HTMLDivElement>(null);
-  const subtitle = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const mounted = useRef(false);
   const opened = useRef(false);
   const transitioning = useRef(false);
   const generation = useRef(0);
   const muted = useRef(false);
+  const keyboardOpen = useRef(false);
   const voice = useRef(true);
   const done = useRef(false);
   const transcript = useRef<Turn[]>([]);
-  const session = useRef<LiveSession | null>(null);
-  const engine = useRef<"live" | "backup">("live");
-  const frame = useRef(0);
   const client = useRef(Symbol("BLUE wake microphone"));
   const wake = useRef<WakeListener | null>(null);
   const wakeFallback = useRef(false);
@@ -60,7 +56,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const captureEpoch = useRef(0);
   const captureFetch = useRef<AbortController | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
-  const audioUrl = useRef<string | null>(null);
+  const audioFetch = useRef<AbortController | null>(null);
   const stopPlayback = useRef<(() => void) | null>(null);
   const restoreFocus = useRef(false);
   const sequence = useRef(0);
@@ -82,9 +78,14 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   }, []);
 
   const stopAudio = useCallback(() => {
-    audio.current?.pause(); audio.current = null;
-    if (audioUrl.current) URL.revokeObjectURL(audioUrl.current);
-    audioUrl.current = null; stopPlayback.current?.(); stopPlayback.current = null;
+    audioFetch.current?.abort(); audioFetch.current = null;
+    const player = audio.current; audio.current = null;
+    if (player) {
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+    }
+    stopPlayback.current?.(); stopPlayback.current = null;
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   }, []);
   const stopCapture = useCallback(async () => {
@@ -100,7 +101,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   }, [stopCapture]);
 
   const startCapture = async (mode: "wake" | "input") => {
-    if (!mounted.current || document.hidden || muted.current || (mode === "wake" ? opened.current : !opened.current || done.current)) return;
+    if (!mounted.current || document.hidden || muted.current || (mode === "wake" ? opened.current : !opened.current || done.current || keyboardOpen.current)) return;
     if (capture.current && captureMode.current === mode) { capture.current.setEnabled(true); return; }
     await stopCapture();
     if (!await pauseWake()) { setNotice("The microphone is still closing. You can type your message."); return; }
@@ -112,7 +113,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
       const timer = setTimeout(() => request.abort(), 5000);
       try {
         const body = new FormData(); body.append("audio", recording, "microphone.wav");
-        const response = await fetch(`${API_BASE}/api/transcribe`, { method: "POST", body, signal: request.signal });
+        const response = await fetch(`${API_BASE}/api/transcribe${mode === "wake" ? "?wake=true" : ""}`, { method: "POST", body, signal: request.signal });
         if (!response.ok) throw new Error("Transcription unavailable");
         const result = await response.json() as { text: string };
         if (capture.current !== instance || token !== captureEpoch.current || document.hidden || muted.current) return;
@@ -123,7 +124,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
           await sendRef.current(result.text.trim());
         } else { instance.setEnabled(true); setPhase("listening"); }
       } catch {
-        if (request.signal.aborted) return;
+        if (capture.current !== instance || token !== captureEpoch.current) return;
         if (capture.current === instance) setNotice("Speech recognition is temporarily unavailable. Use the microphone button to retry, or type below.");
         if (capture.current === instance) { await stopCapture(); if (mode === "input") { muted.current = true; setMicMuted(true); setPhase("idle"); } }
       } finally { clearTimeout(timer); }
@@ -142,68 +143,79 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     }
   };
 
-  const backupSpeak = async (text: string) => {
+  const speak = async (text: string) => {
     if (!voice.current || !opened.current || document.hidden) return;
-    stopAudio(); setPhase("thinking");
+    stopAudio();
     const token = generation.current;
+    const active = () => opened.current && token === generation.current && voice.current && !document.hidden;
     try {
-      const response = await fetch(`${API_BASE}/api/speech`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: AbortSignal.timeout(5000) });
+      const controller = new AbortController();
+      audioFetch.current = controller;
+      const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(17000)]);
+      const response = await fetch(API_BASE + "/api/speech?stream=true", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal,
+      });
       if (!response.ok) throw new Error("Speech unavailable");
-      const blob = await response.blob();
-      if (!opened.current || token !== generation.current || !voice.current || document.hidden) return;
-      const url = URL.createObjectURL(blob); audioUrl.current = url;
-      const player = new Audio(url); audio.current = player;
+      const { url } = await response.json() as { url: string };
+      if (!active()) return;
+      const player = new Audio(); audio.current = player;
       await new Promise<void>((resolve, reject) => {
         stopPlayback.current = resolve;
-        player.onplay = () => setPhase("speaking"); player.onended = () => resolve(); player.onerror = () => reject(new Error("Playback failed"));
+        player.onplaying = () => { if (active()) setPhase("speaking"); };
+        player.onended = () => resolve();
+        player.onerror = () => reject(new Error("Playback failed"));
+        player.src = url;
         void player.play().catch(reject);
       });
     } catch {
-      if (opened.current && token === generation.current) setNotice("BLUE’s audio is unavailable. You can read the reply below.");
+      if (!active()) return;
+      stopAudio();
+      if (!("speechSynthesis" in window)) {
+        setNotice("Bleu’s audio is unavailable. You can read the subtitles.");
+        return;
+      }
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.12;
+      await new Promise<void>(resolve => {
+        const settle = () => { window.clearTimeout(timer); resolve(); };
+        const timer = window.setTimeout(settle, 30_000);
+        stopPlayback.current = settle;
+        utterance.onstart = () => { if (active()) setPhase("speaking"); };
+        utterance.onend = settle;
+        utterance.onerror = () => {
+          if (active()) setNotice("Bleu’s audio is unavailable. You can read the subtitles.");
+          settle();
+        };
+        synth.speak(utterance);
+      });
     } finally { if (token === generation.current) stopAudio(); }
   };
 
+  const resumeInput = () => {
+    if (!opened.current || document.hidden) return;
+    setPhase(muted.current || keyboardOpen.current || captureMode.current !== "input" ? "idle" : "listening");
+    if (!muted.current && !keyboardOpen.current) {
+      if (capture.current && captureMode.current === "input") capture.current.setEnabled(true);
+      else void startCapture("input");
+    }
+  };
+
   const connect = async (greet: boolean) => {
-    if (!mounted.current || !opened.current || document.hidden || session.current) return;
-    const token = generation.current; engine.current = "live"; setPhase("connecting"); setError("");
+    if (!mounted.current || !opened.current || document.hidden || pendingReply.current) return;
+    if (!greet || transcript.current.length) { resumeInput(); return; }
+    const token = generation.current;
+    pendingReply.current = true; setPhase("connecting"); setError("");
     try {
-      const response = await fetch(`${API_BASE}/api/voice-session`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ astronaut_id: astronautId, messages: messages(), finish_session: false, session_id: sessionId.current }), signal: AbortSignal.timeout(5000) });
-      if (!response.ok) throw new Error("Live voice unavailable");
-      const sessionToken = await response.json() as SessionToken;
-      const { AgentSession } = await import("@fishaudio/agent-client");
+      const response = await api.chat({ astronaut_id: astronautId, messages: [], finish_session: false, session_id: sessionId.current });
       if (token !== generation.current || !opened.current) return;
-      const active = () => mounted.current && opened.current && generation.current === token && engine.current === "live";
-      const connecting = AgentSession.start({ sessionToken, microphone: !muted.current, callbacks: {
-        onModeChange: mode => { if (active()) setPhase(mode === "listening" && muted.current ? "idle" : mode); },
-        onUserTranscript: ({ segmentId, text, final }) => { if (active()) update(`u-${token}-${segmentId}`, "user", text, final); },
-        onAgentResponseDelta: ({ segmentId, text }) => { if (active()) update(`a-${token}-${segmentId}`, "assistant", text, false); },
-        onAgentResponse: ({ segmentId, text }) => { if (active()) { pendingReply.current = false; update(`a-${token}-${segmentId}`, "assistant", text, true); } },
-        onError: err => { if (active()) setNotice(err.code === "mic_permission_denied" ? "Microphone access was denied. You can still type, or allow it and press Unmute microphone." : "The voice service had a problem. Your conversation remains here; use Reconnect voice if needed."); },
-        onDisconnect: () => { if (active()) { session.current = null; cancelAnimationFrame(frame.current); setPhase("idle"); setLevel(0); setNotice("Voice connection ended. Press Reconnect voice to continue, or keep typing."); } },
-      } });
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let live: LiveSession;
-      try { live = await Promise.race([connecting, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Voice connection timed out")), 5000); })]); }
-      catch (err) { void connecting.then(late => late.end()).catch(() => {}); throw err; }
-      finally { clearTimeout(timer); }
-      if (!active()) { await live.end(); return; }
-      session.current = live; live.setOutputVolume(voice.current ? 1 : 0);
-      await live.startAudio().catch(() => setNotice("Press the speaker button to enable BLUE’s audio."));
-      if (permission.current !== "denied") setNotice("");
-      let previous = 0;
-      const animate = (time: number) => {
-        if (session.current !== live || !active()) return;
-        if (time - previous > 80) { previous = time; setLevel(Math.min(1, Math.max(live.getInputVolume(), live.getOutputVolume()) * 3)); }
-        frame.current = requestAnimationFrame(animate);
-      };
-      frame.current = requestAnimationFrame(animate);
-      setPhase(live.mode === "listening" && muted.current ? "idle" : live.mode);
-    } catch {
-      if (token !== generation.current || !opened.current) return;
-      engine.current = "backup"; setNotice("Live conversation is unavailable. BLUE’s offline check-in is available, with backup voice input.");
-      if (!transcript.current.length) { update(`a-${++sequence.current}`, "assistant", GREETING, true); if (greet) await backupSpeak(GREETING); }
-      if (!muted.current) await startCapture("input"); else setPhase("idle");
+      if (response.reply_source === "offline") setNotice("Live conversation is unavailable. Bleu’s offline check-in is still available.");
+      update(`a-${++sequence.current}`, "assistant", response.reply, true);
+      setPhase("thinking");
+      await speak(response.reply);
+    } catch { if (token === generation.current) setError("Bleu couldn’t connect. You can try sending a message."); }
+    finally {
+      if (token === generation.current) { pendingReply.current = false; resumeInput(); }
     }
   };
   connectRef.current = connect;
@@ -211,8 +223,6 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
   const send = async (text: string) => {
     if (!text.trim() || !opened.current || done.current || phase === "connecting" || pendingReply.current) return;
     setDraft(""); setError("");
-    if (session.current) { pendingReply.current = true; session.current.sendUserMessage(text, { audio: voice.current }); return; }
-    if (engine.current === "live") { await connectRef.current(false); const reconnected = session.current as LiveSession | null; if (reconnected) { pendingReply.current = true; reconnected.sendUserMessage(text, { audio: voice.current }); return; } }
     const token = generation.current;
     pendingReply.current = true; captureFetch.current?.abort(); captureFetch.current = null;
     capture.current?.setEnabled(false); stopAudio(); setPhase("thinking");
@@ -220,22 +230,18 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     try {
       const response = await api.chat({ astronaut_id: astronautId, messages: messages(), finish_session: false, session_id: sessionId.current });
       if (token !== generation.current || !opened.current) return;
-      update(`a-${++sequence.current}`, "assistant", response.reply, true); await backupSpeak(response.reply);
+      setNotice(response.reply_source === "offline" ? "Live conversation is unavailable. Bleu’s offline check-in is still available." : "");
+      update(`a-${++sequence.current}`, "assistant", response.reply, true); await speak(response.reply);
     } catch { if (token === generation.current) setError("BLUE couldn’t reach the habitat server. Your message is saved; try again."); }
     finally {
-      pendingReply.current = false;
-      if (token === generation.current && opened.current && !document.hidden) {
-        setPhase(muted.current ? "idle" : "listening");
-        if (!muted.current) { if (capture.current) capture.current.setEnabled(true); else void startCapture("input"); }
-      }
+      if (token === generation.current) { pendingReply.current = false; resumeInput(); }
     }
   };
   sendRef.current = send;
 
   const releaseSession = useCallback(async () => {
-    const live = session.current; session.current = null; pendingReply.current = false; cancelAnimationFrame(frame.current);
-    await live?.end().catch(() => {});
-    await stopCapture(); stopAudio();
+    pendingReply.current = false;
+    stopAudio(); await stopCapture();
   }, [stopCapture, stopAudio]);
 
   const resumeWake = () => {
@@ -256,7 +262,8 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     if (transitioning.current && !opened.current) return;
     reportActivity();
     transitioning.current = true; opened.current = false; generation.current++;
-    restoreFocus.current = true; setOpen(false); setTyping(false); dialog.current?.close();
+    keyboardOpen.current = false;
+    restoreFocus.current = true; setOpen(false); setTyping(false); setFiling(false); dialog.current?.close();
     await releaseSession();
     if (!mounted.current) return;
     setPhase("idle"); setLevel(0); transitioning.current = false; resumeWakeRef.current();
@@ -268,7 +275,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     const released = await pauseWake();
     if (!mounted.current || document.hidden || token !== generation.current) { transitioning.current = false; return; }
     const origin = fab.current?.querySelector("svg")?.getBoundingClientRect();
-    opened.current = true; setOpen(true); dialog.current?.showModal(); transitioning.current = false;
+    opened.current = true; setNotice(""); setOpen(true); dialog.current?.showModal(); transitioning.current = false;
     const target = character.current?.getBoundingClientRect();
     if (origin && target?.width && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const x = origin.left + origin.width / 2 - target.left - target.width / 2;
@@ -291,38 +298,50 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     const next = !muted.current;
     if (next) {
       muted.current = true; setMicMuted(true);
-      if (session.current) await session.current.setMicMuted(true);
       await stopCapture(); setLevel(0); if (phase === "listening") setPhase("idle");
       return;
     }
     try {
-      if (session.current) await session.current.setMicMuted(false);
-      else { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
       muted.current = false; setMicMuted(false); permission.current = "granted"; setNotice("");
-      if (!session.current) { if (engine.current === "backup") await startCapture("input"); else await connectRef.current(false); }
-      else if (!session.current.isSpeaking) setPhase("listening");
+      if (!pendingReply.current) await startCapture("input");
     } catch { setNotice("Microphone access is blocked. Allow it in your browser and system microphone settings, then try again."); }
   };
 
+  const toggleKeyboard = async () => {
+    keyboardOpen.current = !keyboardOpen.current;
+    setTyping(keyboardOpen.current);
+    if (keyboardOpen.current) {
+      await stopCapture();
+      if (!pendingReply.current) setPhase("idle");
+    } else if (!pendingReply.current) resumeInput();
+  };
+
   const finish = async () => {
-    if (filing || done.current) return;
-    setFiling(true); const token = generation.current;
-    await session.current?.setMicMuted(true); capture.current?.setEnabled(false);
+    if (filing || done.current || pendingReply.current) return;
+    pendingReply.current = true; setFiling(true); const token = generation.current;
+    capture.current?.setEnabled(false);
     try {
       const response = await api.chat({ astronaut_id: astronautId, messages: messages(), finish_session: true, session_id: sessionId.current });
       if (token !== generation.current || !opened.current) return;
       if (response.generated_report) { onReportGenerated(response.generated_report); done.current = true; setFinished(true); setReward(response.reward); muted.current = true; setMicMuted(true); }
       await releaseSession(); update(`a-${++sequence.current}`, "assistant", response.reply, true); setPhase("idle");
     } catch { setError("The report couldn’t be filed. Your conversation is saved here; please try again."); }
-    finally { if (token === generation.current) setFiling(false); }
+    finally {
+      if (token === generation.current) {
+        pendingReply.current = false; setFiling(false);
+        if (!done.current) resumeInput();
+      }
+    }
   };
 
   useEffect(() => {
     mounted.current = true;
     const detector = new WakeListener(browserSpeech, client.current,
       () => mounted.current && !opened.current && !transitioning.current && !document.hidden && !muted.current && permission.current === "granted",
-      () => void activateRef.current(true), text => { if (mounted.current) setNotice(text); },
-      () => { wakeFallback.current = true; if (mounted.current) { setNotice("Using backup wake-word recognition. Say Hey Blue or press Talk to Blue."); resumeWakeRef.current(); } });
+      () => void activateRef.current(true), text => { if (mounted.current && !opened.current) setNotice(text); },
+      () => { wakeFallback.current = true; if (mounted.current && !opened.current) { setNotice("Using backup wake-word recognition. Say Hey Blue or press Talk to Blue."); resumeWakeRef.current(); } });
     wake.current = detector;
     let status: PermissionStatus | undefined;
     const changed = () => { permission.current = status?.state ?? null; if (permission.current === "granted") resumeWakeRef.current(); };
@@ -333,7 +352,7 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     if (!recognitionConstructor()) wakeFallback.current = true;
     const visibility = async () => {
       if (document.hidden) { generation.current++; await detector.pause(); await releaseSession(); setPhase("idle"); }
-      else if (opened.current && !done.current) void connectRef.current(false);
+      else if (opened.current && !done.current) void connectRef.current(!transcript.current.length);
       else resumeWakeRef.current();
     };
     document.addEventListener("visibilitychange", visibility);
@@ -349,33 +368,27 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
     return () => window.removeEventListener(OPEN_LOG_EVENT, openFromNav);
   }, []);
   const latest = turns.at(-1);
-  useEffect(() => {
-    if (subtitle.current) subtitle.current.scrollTop = subtitle.current.scrollHeight;
-  }, [latest]);
   useEffect(() => { if (typing) input.current?.focus(); }, [typing]);
   useEffect(() => { if (!open && restoreFocus.current) { restoreFocus.current = false; fab.current?.focus(); } }, [open]);
 
   const characterMood: BlueMood = phase === "connecting" || phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : phase === "listening" && !micMuted ? "listening" : mood;
-  const status = finished ? "Report queued for Earth" : phase === "connecting" ? "Connecting…" : phase === "thinking" ? "Thinking…" : phase === "speaking" ? "Bleu is speaking" : micMuted ? "Microphone muted" : phase === "listening" ? "Listening…" : "Ready";
+  const status = finished ? "Report queued for Earth" : phase === "connecting" ? "Connecting…" : phase === "thinking" ? "Thinking…" : phase === "speaking" ? "Bleu is speaking" : typing ? "Keyboard input" : micMuted ? "Microphone muted" : phase === "listening" ? "Listening…" : "Ready";
   return <>
     <button type="button" ref={fab} className={styles.fab} aria-label="Talk to Blue" aria-haspopup="dialog" aria-controls="blue-conversation" aria-expanded={open} hidden={open} onClick={() => void activate()}>
       <span aria-hidden="true" data-blue-anchor="talk-to-blue"><BlueOctopus mood="idle" size={64}/></span>
     </button>
     <dialog ref={dialog} id="blue-conversation" className={styles.dialog} aria-label={`Bleu check-in with ${astronautName}`} onCancel={event => { event.preventDefault(); void close(); }}>
       <button type="button" className={`${styles.icon} ${styles.close}`} aria-label="Close Blue" onClick={() => void close()} autoFocus><X size={22}/></button>
+      <div className={styles.stage}>
       <div data-blue-voice-character ref={character} className={styles.character} aria-hidden="true">
         <BlueOctopus mood={characterMood} level={level}/>
       </div>
       <div className={styles.captions}>
         <p role="status" className={styles.status}>{status}</p>
-        <div ref={subtitle} className={styles.subtitle} aria-live="off" tabIndex={latest?.content ? 0 : undefined} aria-label="Current subtitle">
-          {latest?.content && <p><span className="sr-only">{latest.role === "user" ? "You: " : "Bleu: "}</span>{latest.content}</p>}
-        </div>
-        <span className="sr-only" aria-live="polite">{latest?.final && latest.role === "assistant" ? latest.content : ""}</span>
+        <VoiceSubtitle key={latest?.id} turn={latest} />
+      </div>
       </div>
       <footer className={styles.footer}>
-        {error && <p className={`${styles.notice} ${styles.error}`} role="alert">{error}</p>}
-        {!error && notice && <p className={styles.notice} role="status">{notice}</p>}
         {finished && reward && <details className={styles.reward}>
           <summary>Check-in reward</summary>
           <p id="blue-reward-title" className={styles.rewardTitle}><Sparkles size={15} aria-hidden="true"/> Thank you</p>
@@ -388,16 +401,18 @@ export default function VoicePsychologistFab({ astronautId, astronautName, onRep
           <Link className={styles.rewardLink} onClick={() => void close()} href={reward.challenge_just_completed ? "/dashboard/crew-life?star=new" : "/dashboard/crew-life"}><Award size={14} aria-hidden="true"/> Crew life: titles, challenge &amp; mission map</Link>
         </details>}
         {finished ? <button className={styles.report} onClick={() => { transcript.current = []; setTurns([]); done.current = false; setFinished(false); setReward(null); sessionId.current = newSessionId(); muted.current = false; setMicMuted(false); setNotice(""); setError(""); void connectRef.current(true); }}><RotateCcw size={16}/> Start a new session</button> : <>
-          {typing && <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(draft.trim()); }}><textarea ref={input} className={styles.input} aria-label="Your message to Blue" placeholder="Type a message…" rows={1} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(draft.trim()); } }}/><button type="submit" className={`${styles.icon} ${styles.primary}`} aria-label="Send message" disabled={!draft.trim() || phase === "connecting" || phase === "thinking" || filing}><Send size={18}/></button></form>}
           <div className={styles.controls}>
             <button type="button" className={styles.icon} disabled={phase === "connecting" || filing} aria-label={micMuted ? "Unmute microphone" : "Mute microphone"} aria-pressed={micMuted} onClick={() => void toggleMic()}>{micMuted ? <MicOff size={19}/> : <Mic size={19}/>}</button>
-            <button type="button" className={styles.icon} aria-label={voiceOn ? "Mute Blue’s voice" : "Enable Blue’s voice"} aria-pressed={!voiceOn} onClick={() => { voice.current = !voice.current; setVoiceOn(voice.current); session.current?.setOutputVolume(voice.current ? 1 : 0); if (!voice.current) stopAudio(); else void session.current?.startAudio(); }}>{voiceOn ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
-            <button type="button" className={styles.icon} aria-label="Type a message" aria-expanded={typing} onClick={() => setTyping(value => !value)}><Keyboard size={19}/></button>
+            <button type="button" className={styles.icon} aria-label={voiceOn ? "Mute Blue’s voice" : "Enable Blue’s voice"} aria-pressed={!voiceOn} onClick={() => { voice.current = !voice.current; setVoiceOn(voice.current); if (!voice.current) stopAudio(); }}>{voiceOn ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
+            <button type="button" className={styles.icon} aria-label="Type a message" aria-expanded={typing} onClick={() => void toggleKeyboard()}><Keyboard size={19}/></button>
           </div>
-          {!session.current && engine.current === "live" && phase !== "connecting" && <button className={styles.report} onClick={() => void connectRef.current(false)}>Reconnect voice</button>}
-          {turns.some(t => t.role === "user" && t.final) && <button className={styles.report} disabled={filing || phase === "connecting" || phase === "thinking"} onClick={() => void finish()}><FileText size={15}/>{filing ? "Filing report…" : "End session & generate Earth report"}</button>}
+          {typing && <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(draft.trim()); }}><textarea ref={input} className={styles.input} aria-label="Your message to Blue" placeholder="Type a message…" rows={1} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(draft.trim()); } }}/><button type="submit" className={`${styles.icon} ${styles.primary}`} aria-label="Send message" disabled={!draft.trim() || phase === "connecting" || phase === "thinking" || phase === "speaking" || filing}><Send size={18}/></button></form>}
+          {turns.some(t => t.role === "user" && t.final) && <button className={styles.report} disabled={filing || phase === "connecting" || phase === "thinking" || phase === "speaking"} onClick={() => void finish()}><FileText size={15}/>{filing ? "Filing report…" : "End session & generate Earth report"}</button>}
         </>}
       </footer>
+      <div className={styles.noticeArea}>
+        {error ? <p className={styles.error} role="alert">{error}</p> : notice && <p role="status">{notice}</p>}
+      </div>
     </dialog>
   </>;
 }

@@ -27,7 +27,6 @@ import {
   firstName,
   nextPrestigeTier,
   prestigeBadges,
-  prestigeLabel,
   prestigeTier,
 } from "@/lib/crewLife";
 import AppShell from "@/components/AppShell";
@@ -625,15 +624,15 @@ function EncourageCard({ board, busy, act }: { board: CrewLifeBoard; busy: boole
 
 function PatchesCard({ board }: { board: CrewLifeBoard }) {
   // One emblem per badge kind; its rarity climbs each time it is earned again.
-  const badges = prestigeBadges(board.patches);
+  const badges = prestigeBadges(board.patches).sort((a, b) => prestigeTier(b.count).rank - prestigeTier(a.count).rank);
   return (
     <section aria-labelledby="patches-title" className="card p-5">
       <h2 id="patches-title" className="text-[17px] font-medium text-ink">
         Your prestige badges
       </h2>
       <p className="mt-1 text-[13px] text-ink-soft">
-        One emblem per title and one for the crew challenge. Earn it again and its inlaid lines climb to a rarer colour:
-        white, blue, purple, red, then yellow. Titles held this week count when the week closes.
+        Each title and the crew challenge has its own Bleu badge. More filled dots mean a higher rank.
+        Titles held this week count when the week closes.
       </p>
       {badges.length ? (
         <ul className="mt-4 grid grid-cols-3 gap-x-2 gap-y-5 sm:grid-cols-6">
@@ -642,7 +641,7 @@ function PatchesCard({ board }: { board: CrewLifeBoard }) {
             const next = nextPrestigeTier(b.count);
             return (
               <li key={b.code} className="flex flex-col items-center text-center">
-                <PrestigeBadge code={b.code} count={b.count} size={78} label={prestigeLabel(b)} />
+                <PrestigeBadge code={b.code} count={b.count} size={70} />
                 <span className="mt-2 text-[12px] font-medium leading-tight text-ink">{b.name}</span>
                 <span className="num text-[11px] font-semibold text-ink-soft">
                   {tier.label} · ×{b.count}

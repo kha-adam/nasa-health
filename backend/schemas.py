@@ -255,6 +255,7 @@ class CheckinReward(FrozenModel):
 
 class ChatResponse(FrozenModel):
     reply: str
+    reply_source: Literal["groq", "offline"] | None = None
     session_mode: SessionMode
     suggested_to_wrap_up: bool
     generated_report: MentalHealthReport | None = None
