@@ -71,8 +71,8 @@ const C = {
 
 // Original colours of the character (BlueOctopus.tsx) and their blue counterparts.
 const ORIG = {
-  arm: [hex("#00B5E3"), hex("#0284C7")],
-  body: [hex("#20D4F2"), hex("#00B5E3"), hex("#0284C7")],
+  arm: [hex("#00BCE5"), hex("#0096BF")],
+  body: [hex("#06D4EF"), hex("#00BCE5"), hex("#0096BF")],
 };
 const BLUE = {
   arm: [hex("#2D7FE6"), hex("#0B3D91")],
@@ -162,7 +162,6 @@ window.setupScene = function ({ markup, moduleCss, timeline, clip }) {
     if (p.getAttribute("fill") === `url(#${body.id})`) p.setAttribute("fill", `url(#${tBody.id})`);
   }
   el.gTBody = tBody;
-  el.fuchsia = [...svg.querySelectorAll('path[fill="#C90068"]')];
 
   for (const g of [el.left, el.right, el.front, el.head, ...el.face, el.shine, el.shadow]) {
     g.style.transformOrigin = "0 0";
@@ -181,13 +180,13 @@ function poseOctopus(t, m) {
   // Head: the ellipse rounds into the sphere and moves to the frame centre.
   const grow = smooth(0.1, 1, m);
   const centre = smooth(0.05, 0.9, m);
-  const rx = lerp(111 * K, RS, grow);
-  const ry = lerp(103 * K, RS, grow);
-  const cyFrame = lerp(BOX_Y + 127 * K, CY, centre);
-  const sx = rx / (111 * K);
-  const sy = ry / (103 * K);
+  const rx = lerp(112 * K, RS, grow);
+  const ry = lerp(94 * K, RS, grow);
+  const cyFrame = lerp(BOX_Y + 112 * K, CY, centre);
+  const sx = rx / (112 * K);
+  const sy = ry / (94 * K);
   const cyv = (cyFrame - BOX_Y) / K;
-  const headT = `translate(160px, ${cyv}px) scale(${sx}, ${sy}) translate(-160px, -127px)`;
+  const headT = `translate(160px, ${cyv}px) scale(${sx}, ${sy}) translate(-160px, -112px)`;
   el.head.style.transform = headT;
 
   // Face sinks into the surface.
@@ -211,13 +210,10 @@ function poseOctopus(t, m) {
   el.front.style.transform = `${headT} translate(160px, 127px) scale(${1 - 0.3 * fold}, ${1 - 0.56 * fold}) translate(-160px, -127px) translate(160px, 205px) scale(1, ${1 + 0.035 * wob}) translate(-160px, -205px)`;
   for (const g of [el.left, el.right, el.front]) g.style.opacity = fade;
 
-  // The fuchsia undersides fade out instead of shifting hue (a hue shift would pass through purple).
-  const accent = 1 - smooth(0, 0.32, m);
-  for (const p of el.fuchsia) p.style.opacity = accent;
   setStops(el.gArm, ORIG.arm, BLUE.arm, tint);
   setStops(el.gTBody, ORIG.body, BLUE.body, tint);
 
-  el.shadow.style.opacity = 0.16 * shadowAmount(t);
+  el.shadow.style.opacity = 0.12 * shadowAmount(t);
 
   return { cx: CX, cy: cyFrame, rx, ry };
 }

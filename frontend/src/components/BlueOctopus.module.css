@@ -1,28 +1,55 @@
-.character { width: 220px; height: 192px; overflow: visible; flex-shrink: 0; }
-/* Light stage: a softer floor shadow under the character (integration only). */
-.character > ellipse:first-of-type { opacity: .16; }
-.body { transform-origin: 160px 246px; animation: breathe 4s ease-in-out infinite; }
-.head { transform-origin: 160px 180px; transition: transform .35s; }
-.eyes { transform-origin: 160px 135px; animation: blink 5.2s infinite; }
-.leftTentacles { transform-origin: 113px 197px; animation: sway 3.2s ease-in-out infinite; }
-.rightTentacles { transform-origin: 207px 197px; animation: sway 3.2s ease-in-out infinite reverse; }
-.hand { opacity: 0; transform-origin: 236px 190px; }
-.mouth { transform-origin: 160px 177px; }
-.character[data-mood="listening"] .head { transform: rotate(-6deg); }
-.character[data-mood="listening"] .hand { opacity: 1; animation: wave 1.8s ease-in-out infinite; }
-.character[data-mood="speaking"] .mouth { transform: scaleY(calc(.5 + var(--voice,0) * 1.4)); transition: transform 65ms; }
-.character[data-mood="speaking"] .head { animation: nod 1.2s ease-in-out infinite; }
-.character[data-mood="laughing"] .body { animation: laugh .5s ease-in-out infinite; }
-.character[data-mood="thinking"] .head { transform: rotate(6deg); }
-.character[data-mood="sad"] .head, .character[data-mood="sleepy"] .head { transform: translateY(4px) rotate(-3deg); }
-.character[data-mood="sleepy"] .hand { opacity: 1; transform: translate(-64px,0) rotate(-12deg); }
-.thought { animation: breathe 1.5s ease-in-out infinite; }
-@keyframes breathe { 50% { transform: translateY(-3px); } }
-@keyframes blink { 0%,43%,47%,100% { transform: scaleY(1); } 45% { transform: scaleY(.06); } }
-@keyframes sway { 50% { transform: rotate(5deg); } }
-@keyframes wave { 50% { transform: rotate(-7deg); } }
-@keyframes nod { 50% { transform: rotate(2deg); } }
-@keyframes laugh { 50% { transform: translateY(-4px) rotate(-2deg); } }
-@media(max-width:480px) { .character { width: 180px; height: 158px; } }
-@media(max-height:650px) { .character { width: 124px; height: 108px; } }
-@media(prefers-reduced-motion:reduce) { .character * { animation: none !important; transition: none !important; } }
+.character {
+  --blue-skin-light: #06d4ef;
+  --blue-skin: #00bce5;
+  --blue-skin-shade: #0096bf;
+  --blue-sole-light: #0866c5;
+  --blue-sole: #00358d;
+  --blue-eye: #0a1419;
+  --blue-mouth: #001b48;
+  --blue-pose-duration: 280ms;
+  display: block;
+  width: 220px;
+  height: auto;
+  aspect-ratio: 320 / 280;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.shadow { opacity: .12; }
+.crownShine { filter: blur(3px); }
+.body { transform-origin: 160px 246px; }
+.head { transform-origin: 160px 174px; transition: transform var(--blue-pose-duration) ease-out; }
+.eyes { transform-origin: 160px 118px; animation: blink 6.4s 2s infinite; }
+.leftTentacles { transform-origin: 113px 197px; }
+.rightTentacles { transform-origin: 207px 197px; }
+.frontTentacles { transform-origin: 160px 230px; }
+.hand { opacity: 0; transform-origin: 230px 204px; }
+.mouth { transform-origin: 160px 153px; }
+
+.character[data-mood="listening"] .head { transform: rotate(-5deg); }
+.character[data-mood="listening"] .hand { opacity: 1; animation: listen-in var(--blue-pose-duration) ease-out both; }
+.character[data-mood="speaking"] .mouth { transform: scaleY(calc(.65 + var(--voice, 0) * .65)); transition: transform 80ms linear; }
+.character[data-mood="speaking"] .head { animation: nod 1.6s ease-in-out infinite; }
+.character[data-mood="laughing"] .body { animation: laugh 420ms ease-in-out 3; }
+.character[data-mood="thinking"] .head { transform: rotate(5deg); }
+.character[data-mood="thinking"] .thought { animation: think 1.4s ease-in-out infinite; }
+.character[data-mood="sad"] .head { transform: translateY(3px); }
+.character[data-mood="sleepy"] .head { transform: translateY(3px) rotate(-3deg); }
+.character[data-mood="sleepy"] .hand { opacity: 1; }
+.character[data-mood="surprised"] .head { animation: surprise var(--blue-pose-duration) ease-out; }
+/* Preserve the reference's half-closed and expressive eye shapes. */
+.character:is([data-mood="laughing"], [data-mood="crying"], [data-mood="sad"], [data-mood="angry"], [data-mood="sleepy"]) .eyes { animation: none; }
+
+@keyframes blink { 0%, 45%, 49%, 100% { transform: scaleY(1); } 47% { transform: scaleY(.08); } }
+@keyframes listen-in { from { opacity: 0; transform: translateY(8px) rotate(8deg); } to { opacity: 1; transform: none; } }
+@keyframes nod { 50% { transform: rotate(1.5deg); } }
+@keyframes laugh { 50% { transform: translateY(-3px) rotate(-1deg); } }
+@keyframes think { 50% { opacity: .35; } }
+@keyframes surprise { 50% { transform: translateY(-4px); } }
+
+@media (max-width: 480px) { .character { width: 180px; } }
+@media (max-height: 650px) { .character { width: 124px; } }
+@media (prefers-reduced-motion: reduce) {
+  .character, .character * { animation: none !important; transition: none !important; }
+  .character[data-mood="speaking"] .mouth { transform: none; }
+}
