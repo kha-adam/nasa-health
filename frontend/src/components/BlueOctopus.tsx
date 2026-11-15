@@ -15,14 +15,19 @@ export function moodFromText(text: string): BlueMood {
 }
 
 /** Articulated vector character inspired by the user's blue octopus reference. */
-export default function BlueOctopus({ mood = "idle", level = 0 }: { mood?: BlueMood; level?: number }) {
+export default function BlueOctopus({ mood = "idle", level = 0, size }: {
+  mood?: BlueMood;
+  level?: number;
+  /** Fixed width in px (height follows the 320×280 artwork); overrides the responsive default sizes. */
+  size?: number;
+}) {
   const id = useId().replace(/:/g, "");
   const happy = mood === "happy" || mood === "laughing";
   const worried = mood === "sad" || mood === "crying";
   const sleepy = mood === "sleepy";
   const angry = mood === "angry";
   const talking = mood === "speaking";
-  return <svg className={styles.character} viewBox="0 0 320 280" role="img" aria-label={`BLUE octopus, ${mood}`} data-mood={mood} style={{ "--voice": level } as CSSProperties}>
+  return <svg className={styles.character} viewBox="0 0 320 280" role="img" aria-label={`BLUE octopus, ${mood}`} data-mood={mood} style={{ "--voice": level, ...(size ? { width: size, height: (size * 280) / 320 } : {}) } as CSSProperties}>
     <defs>
       <radialGradient id={`${id}body`} cx="40%" cy="25%" r="85%"><stop stopColor="#20D4F2"/><stop offset=".65" stopColor="#00B5E3"/><stop offset="1" stopColor="#0284C7"/></radialGradient>
       <linearGradient id={`${id}arm`} x2=".8" y2="1"><stop stopColor="#00B5E3"/><stop offset="1" stopColor="#0284C7"/></linearGradient>
