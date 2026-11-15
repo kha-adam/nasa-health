@@ -1,0 +1,37 @@
+{
+  "$comment": "Shared timeline of the BLUE login/logout transitions, in seconds of clip time. scripts/blue_transitions/render.mjs renders the two videos from it and frontend/src/lib/blueTransitions.ts drives the movement, veil and reveal from the same marks. After a change, re-render the videos (see scripts/blue_transitions/README.md).",
+  "clip": {
+    "$comment": "Square frame. The octopus artwork (320x280 viewBox) is drawn octopusWidth px wide with its box centred in the frame; the sphere is centred in the frame. Sizes are in master frame px.",
+    "masterSize": 1024,
+    "webSize": 768,
+    "fps": 60,
+    "octopusWidth": 400,
+    "sphereDiameter": 460
+  },
+  "login": {
+    "duration": 4.2,
+    "toCenter": [0, 0.45],
+    "morph": [0.45, 1.1],
+    "spin": [1.1, 2.45],
+    "toTarget": [2.45, 3.45],
+    "unmorph": [2.95, 3.45],
+    "settle": [3.45, 3.85],
+    "reveal": [3.45, 4.2],
+    "rotation": { "window": [0.55, 3.25], "turns": 2.2, "direction": 1 },
+    "orbit": [0.95, 2.75],
+    "gather": [1.1, 2.45]
+  },
+  "logout": {
+    "duration": 3.6,
+    "toCenter": [0, 0.45],
+    "morph": [0.42, 1.08],
+    "spin": [1.1, 2.3],
+    "toTarget": [2.3, 2.95],
+    "unmorph": [2.3, 2.85],
+    "settle": [2.85, 3.2],
+    "reveal": [2.95, 3.6],
+    "rotation": { "window": [0.5, 2.85], "turns": 2.0, "direction": -1 },
+    "orbit": [0.95, 2.45],
+    "gather": [1.1, 2.3]
+  }
+}

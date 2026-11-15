@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BLUE transition scene</title>
+<style>
+  html, body { margin: 0; width: 1024px; height: 1024px; overflow: hidden; background: transparent; }
+  #stage { position: relative; width: 1024px; height: 1024px; }
+  #stage > * { position: absolute; left: 0; top: 0; }
+  canvas { width: 1024px; height: 1024px; }
+  /* The octopus box (320x280 viewBox) is placed by scene.js from the timeline sizes. */
+  #octo svg { display: block; overflow: visible; }
+  /* The character CSS module is injected below; nothing may animate on its own: every
+     frame is a pure function of the clip time. */
+  * { animation: none !important; transition: none !important; }
+</style>
+<style id="octopus-css"></style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="halo" width="1024" height="1024"></canvas>
+    <canvas id="back" width="1024" height="1024"></canvas>
+    <div id="octo"></div>
+    <canvas id="sphere" width="1024" height="1024"></canvas>
+    <canvas id="front" width="1024" height="1024"></canvas>
+  </div>
+  <script src="scene.js"></script>
+</body>
+</html>
