@@ -6,6 +6,9 @@ const BACKEND_URL = process.env.BLUE_API_URL ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Hide the "N" development indicator in the bottom-left corner (dev only; build and
+  // runtime errors are still shown).
+  devIndicators: false,
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }];
   },

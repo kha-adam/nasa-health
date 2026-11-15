@@ -66,8 +66,6 @@ export default function TopNavBar({ user, mission, onLogout, minimal = false, ex
   return (
     <header className={`topbar flex shrink-0 items-center gap-x-4 rounded-[22px] px-4 text-white md:px-5 ${minimal ? `${extra ? "h-16" : "h-14"} justify-between` : "flex-wrap gap-y-2 py-2.5 xl:h-14 xl:flex-nowrap xl:py-0"}`}>
       <p className="order-1 flex items-center gap-2 whitespace-nowrap text-sm">
-        {/* eslint-disable-next-line @next/next/no-img-element -- small pre-sized decorative asset */}
-        <img src="/brand/chrome-sphere.webp" alt="" width={26} height={26} className="h-[26px] w-[26px] md:hidden" />
         <span className="flex items-baseline gap-1.5">
           <span className="font-display text-[15px] font-bold tracking-[0.02em]">BLUE</span>
           <span className="text-white/60">/</span>

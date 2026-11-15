@@ -102,14 +102,6 @@ export default function AppShell({ user, profile, mission, active, onLogout, onO
         aria-label="Main"
         className="hidden w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[24px] border border-line bg-rail/90 px-2 pb-3 pt-3 shadow-[var(--shadow-card)] md:sticky md:top-3 md:flex md:h-[calc(100vh-24px)]"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- small pre-sized decorative asset */}
-        <img
-          src="/brand/chrome-sphere.webp"
-          alt=""
-          width={40}
-          height={40}
-          className="mb-3 h-10 w-10 drop-shadow-[0_6px_10px_rgba(12,71,109,0.3)]"
-        />
         {items.map((item) => (
           <NavEntry key={item.key} item={item} active={item.key === active} />
         ))}
