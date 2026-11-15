@@ -35,7 +35,9 @@ AI agents **MUST NOT** build, install, or execute any of the following:
 | Role | Sees | Never sees / cannot do |
 | :--- | :--- | :--- |
 | **Astronaut** (`vance`, `chen`, `lin`) | Their own profile, all their metrics, BLUE chats, mental-health reports | Any other astronaut's data (403) |
-| **Flight surgeon** (`surgeon`) | All 3 crew: physical + cabin metrics, status, events | Mental-health reports, mental body highlights, private behavioural metrics (`voice_stress`, `speech_rate`, `blink_rate`), BLUE chat, Earth reply (403 / redacted) |
+| **Flight surgeon** (`surgeon`) | All 3 crew: physical + cabin metrics, status, events | Mental-health reports, mental body highlights, private behavioural metrics (`voice_stress`, `speech_rate`, `blink_rate`), BLUE chat, Earth reply, crew life (403 / redacted) |
+
+**Crew life** (`/api/crew-life*`, `core/crew_life.py`) is shared between the astronauts only and always acts as the signed-in astronaut. It names title leaders only (ties shared, no ranking, never another crewmate's numbers), counts BLUE messages without reading them, shows encouragements only to their sender and recipient, and lets anyone leave the titles (`share_in_titles`).
 
 API responses carry `Cache-Control: no-store`; cross-origin POSTs are rejected. The frontend calls same-origin `/api/*`, proxied to FastAPI by `next.config.ts`.
 
@@ -106,7 +108,8 @@ project-blue/
 │   ├── schemas.py               # Pydantic contracts (mirror: frontend/src/types/blue.ts)
 │   ├── data/
 │   │   ├── astronauts.json      # 3 canonical profiles (generated, committed)
-│   │   ├── telemetry/<id>.json  # columnar history: 24 h raw, 7 d hourly, mission daily
+│   │   ├── telemetry/<id>.json  # columnar history: 24 h raw, 7 d hourly, mission daily, nightly bed/wake times
+│   │   ├── crew_life.json       # crew-life seed: past weeks, this week's check-ins, pauses, encouragements
 │   │   └── users.json           # accounts with PBKDF2 hashes
 │   ├── tests/test_api.py        # auth, privacy, data and BLUE flow tests
 │   └── core/
@@ -116,6 +119,8 @@ project-blue/
 │       ├── profiles.py          # in-memory store + flight-surgeon redaction
 │       ├── psychologist.py      # BRIEF_CHECKIN vs DEEP_SUPPORT engine
 │       ├── report_generator.py  # Earth summary report + simulated Earth reply
+│       ├── crew_life.py         # weekly titles, crew challenge, rewards aboard, mission map
+│       ├── space_facts.py       # facts for the reward after each check-in
 │       └── speech.py            # STT/TTS stub + graceful fallback
 └── frontend/
     ├── next.config.ts           # proxies /api/* to FastAPI (first-party cookie)
@@ -131,12 +136,14 @@ project-blue/
         │       ├── page.tsx                     # 3-column dashboard (primary info)
         │       ├── metrics/[metric]/page.tsx    # Metric detail + charts
         │       ├── reports/page.tsx             # All reports (astronaut)
+        │       ├── crew-life/page.tsx           # Weekly titles, crew challenge, mission map (astronaut)
         │       └── reports/[reportId]/page.tsx  # Full mental-health report
         └── components/
             ├── AppShell.tsx  TopNavBar.tsx  VitalsPanel.tsx  Sparkline.tsx
             ├── HumanBodyModel.tsx  MindPanel.tsx  ObservationsPanel.tsx  SourceTag.tsx
             ├── MentalReportsPanel.tsx  EventsPanel.tsx  MetricChart.tsx  ExportDialog.tsx
-            └── VoicePsychologistFab.tsx  StatusBadge.tsx  ScreenStates.tsx
+            ├── VoicePsychologistFab.tsx  StatusBadge.tsx  ScreenStates.tsx
+            └── PrestigeBadge.tsx  PrestigeStrip.tsx  MissionStarMap.tsx
 ```
 
 ---
@@ -215,6 +222,8 @@ Both files must change together; Pydantic rejects unknown keys. Never rename key
 
 *(When `finish_session: true`, `generated_report` returns a completed `MentalHealthReport` object with `"earth_status": "QUEUED_FOR_EARTH"`, and the backend automatically prepends it to `astronaut.mental_reports`.)*
 
+* `ChatRequest.session_id` (optional, random per conversation) lets crew life count each message once; when `finish_session: true`, the response also carries `reward: CheckinReward {thank_you, space_fact, checkin_days, target_days, streak_days, first_today, challenge_completed, challenge_just_completed, stars}`.
+
 ### C. Simulate Earth Psychologist Directive (`POST /api/astronauts/{id}/reports/{report_id}/earth-reply`)
 
 * Triggers a realistic Earth psychologist response (`"earth_status": "REVIEWED_BY_EARTH"` + populated `"earth_psychologist_directive"`) on any newly generated report during the live demo.
@@ -233,3 +242,9 @@ Both files must change together; Pydantic rejects unknown keys. Never rename key
    * Did I align with the 3 canonical profiles (`astro-vance`, `astro-chen`, `astro-lin`) and match Section 8 JSON keys verbatim?
    * Does every new route go through `current_user` and the access rules in Section 2B? Does the flight surgeon still get no mental-health data?
    * Did I keep the dashboard to primary information and put detail behind a click?
+
+### D. Crew life (astronaut only, about the signed-in astronaut)
+
+* `GET /api/crew-life` -> `CrewLifeBoard {week, titles[{code, name, criterion, holders, you_hold, your_value, perk}], challenge, mission_map[], stars, patches[], ritual_options, rituals_today, encouragements_received, encouragements_sent, share_in_titles, ...}`.
+* `POST /api/crew-life/rituals {kind}`, `/encouragements {to_id, message}`, `/perks/{perk} {option}` (title holder only), `/challenge/vote {option}` (once the challenge is complete), `/preferences {share_in_titles}` -> updated `CrewLifeBoard`. `POST /api/crew-life/blue-activity {astronaut_id, session_id, user_messages}` -> 204 (conversation closed without a report).
+

@@ -9,6 +9,8 @@
  * - MetricHistory: GET /api/astronauts/{id}/metrics/{metric}?range=24h|7d|30d|all
  * - ChatRequest / ChatResponse: POST /api/chat (astronaut only)
  * - POST /api/astronauts/{id}/reports/{report_id}/earth-reply -> MentalHealthReport
+ * - CheckinReward: ChatResponse.reward when a check-in (finish_session) is filed
+ * - CrewLifeBoard: GET /api/crew-life and every POST /api/crew-life/* (astronaut only)
  */
 
 export type AstronautId = "astro-vance" | "astro-chen" | "astro-lin";
@@ -23,6 +25,10 @@ export type MetricCadence = "continuous" | "daily" | "weekly";
 export type HistoryRange = "24h" | "7d" | "30d" | "all";
 export type Resolution = "15min" | "hourly" | "daily";
 export type EventScope = "crew" | "cabin";
+export type TitleCode = "calm_keeper" | "checkin_star" | "station_voice" | "sleep_captain" | "crew_compass";
+export type PerkCode = "station_playlist" | "menu_meal" | "wakeup_song" | "quiet_hour" | "sunday_activity";
+export type RitualKind = "breathing" | "stretch" | "window" | "music" | "wind_down" | "gratitude";
+export type PatchCode = TitleCode | "crew_challenge";
 
 export interface SessionUser {
   username: string;
@@ -179,6 +185,21 @@ export interface ChatRequest {
   astronaut_id: AstronautId;
   messages: ChatMessage[];
   finish_session: boolean;
+  /** Random id per BLUE conversation, so the crew-life tally counts each message once. */
+  session_id?: string | null;
+}
+
+/** Small, immediate thank-you shown after each check-in with BLUE. */
+export interface CheckinReward {
+  thank_you: string;
+  space_fact: string;
+  checkin_days: number;
+  target_days: number;
+  streak_days: number;
+  first_today: boolean;
+  challenge_completed: boolean;
+  challenge_just_completed: boolean;
+  stars: number;
 }
 
 export interface ChatResponse {
@@ -186,4 +207,109 @@ export interface ChatResponse {
   session_mode: SessionMode;
   suggested_to_wrap_up: boolean;
   generated_report: MentalHealthReport | null;
+  reward: CheckinReward | null;
+}
+
+// --------------------------------------------------------------------------
+// Crew life — weekly titles, crew challenge, rewards aboard, mission map
+// --------------------------------------------------------------------------
+
+export interface CrewMember {
+  id: AstronautId;
+  name: string;
+  role: string;
+  avatar_initials: string;
+}
+
+export interface PerkStatus {
+  code: PerkCode;
+  label: string;
+  options: string[];
+  choice: string | null;
+  chosen_by: AstronautId | null;
+}
+
+export interface TitleStanding {
+  code: TitleCode;
+  name: string;
+  criterion: string;
+  /** Only the leaders are named: never a ranking, never other people's scores. */
+  holders: AstronautId[];
+  you_hold: boolean;
+  your_value: string;
+  perk: PerkStatus;
+}
+
+export interface RewardOption {
+  code: string;
+  label: string;
+  kind: "film" | "meal";
+}
+
+export interface ChallengeStatus {
+  week: number;
+  start_day: number;
+  end_day: number;
+  label: string;
+  target_days: number;
+  your_days: number[];
+  crew_size: number;
+  crew_on_target: number;
+  days_left: number;
+  completed: boolean;
+  reward_options: RewardOption[];
+  vote_counts: Record<string, number>;
+  your_vote: string | null;
+  reward_choice: string | null;
+}
+
+export interface MissionWeek {
+  week: number;
+  start_day: number;
+  end_day: number;
+  completed: boolean;
+  current: boolean;
+}
+
+export interface Patch {
+  code: PatchCode;
+  name: string;
+  week: number;
+  current: boolean;
+}
+
+export interface RitualOption {
+  kind: RitualKind;
+  label: string;
+  minutes: number;
+}
+
+export interface Encouragement {
+  id: string;
+  from_id: AstronautId;
+  to_id: AstronautId;
+  mission_day: number;
+  message: string;
+}
+
+export interface CrewLifeBoard {
+  astronaut_id: AstronautId;
+  mission_day: number;
+  week: number;
+  week_start_day: number;
+  week_end_day: number;
+  crew: CrewMember[];
+  titles: TitleStanding[];
+  challenge: ChallengeStatus;
+  mission_map: MissionWeek[];
+  stars: number;
+  patches: Patch[];
+  ritual_options: RitualOption[];
+  rituals_today: RitualKind[];
+  rituals_week: number;
+  max_rituals_per_day: number;
+  encouragements_received: Encouragement[];
+  encouragements_sent: Encouragement[];
+  max_encouragements_per_day: number;
+  share_in_titles: boolean;
 }

@@ -9,6 +9,9 @@ Output: backend/data/astronauts.json          3 canonical profiles
             raw    — 15-minute samples, last 24 h
             hourly — mean/min/max per hour, last 7 days
             daily  — mean/min/max per mission day, whole mission
+            sleep  — one entry per night: bedtime and wake-up time in
+                     minutes after midnight of the evening's mission day
+                     (feeds the crew-life "Sleep Captain" regularity title)
 
 Crew mapping: C1 -> astro-vance, C2 -> astro-chen, C3 -> astro-lin (C4 is not
 part of the demo crew). Everything shown in the app — current values, status
@@ -122,6 +125,40 @@ def aggregate(rows: list[dict], key) -> dict:
     return out
 
 
+MIN_NIGHT_H = 3  # shorter sommeil runs are naps, not the night's sleep
+
+
+def sleep_log(rows: list[dict]) -> dict:
+    """Bedtime / wake-up per night, at the CSV's 15-minute resolution.
+
+    A night belongs to the mission day of the evening it starts on (a run that
+    starts after midnight still counts for the previous evening). Minutes are
+    measured from midnight of that evening, so 22:30 -> 1350 and 00:15 the
+    next morning -> 1455. A night still running at the end of the data has no
+    wake-up time yet.
+    """
+    step = rows[1]["ts"] - rows[0]["ts"] if len(rows) > 1 else timedelta(minutes=15)
+    out: dict[str, list] = {"day": [], "bed_min": [], "wake_min": []}
+    run: list[dict] = []
+    for r in [*rows, None]:  # sentinel closes the last run
+        if r is not None and r["activity"] == "sommeil":
+            run.append(r)
+            continue
+        if not run:
+            continue
+        start, last, still_asleep = run[0]["ts"], run[-1]["ts"], r is None
+        partial_start = start == rows[0]["ts"]  # data begins mid-night
+        if not partial_start and (still_asleep or last + step - start >= timedelta(hours=MIN_NIGHT_H)):
+            evening = start if start.hour >= 12 else start - timedelta(days=1)
+            midnight = evening.replace(hour=0, minute=0, second=0, microsecond=0)
+            day = run[0]["day"] if start.hour >= 12 else run[0]["day"] - 1
+            out["day"].append(day)
+            out["bed_min"].append(int((start - midnight).total_seconds() // 60))
+            out["wake_min"].append(None if still_asleep else int((last + step - midnight).total_seconds() // 60))
+        run = []
+    return out
+
+
 def telemetry(rows: list[dict]) -> dict:
     now = rows[-1]["ts"]
     raw_rows = [r for r in rows if r["ts"] > now - timedelta(hours=24)]
@@ -135,6 +172,7 @@ def telemetry(rows: list[dict]) -> dict:
         },
         "hourly": aggregate(hourly_rows, lambda r: r["ts"].replace(minute=0)),
         "daily": aggregate(rows, lambda r: r["day"]),
+        "sleep": sleep_log(rows),
     }
 
 

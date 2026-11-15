@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, Lock, MessageSquareText } from "lucide-react";
+import Link from "next/link";
+import { Award, CheckCircle2, Lock, MessageSquareText } from "lucide-react";
 import type { AstronautProfile, MetricDefinition } from "@/types/blue";
 import { STATUS_RANK } from "@/lib/metrics";
 import { Observation } from "./ObservationsPanel";
@@ -89,12 +90,14 @@ export default function MindPanel({ profile, catalog, asSurgeon, onOpenLog }: Pr
               diagnosis.
             </p>
             {onOpenLog && (
-              <button
-                onClick={onOpenLog}
-                className="btn-soft mt-3.5 px-3.5 py-1.5 text-xs"
-              >
-                <MessageSquareText className="h-3.5 w-3.5" aria-hidden /> Open the log
-              </button>
+              <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                <button onClick={onOpenLog} className="btn-soft px-3.5 py-1.5 text-xs">
+                  <MessageSquareText className="h-3.5 w-3.5" aria-hidden /> Open the log
+                </button>
+                <Link href="/dashboard/crew-life" className="btn-ghost px-3.5 py-1.5 text-xs">
+                  <Award className="h-3.5 w-3.5 text-sky" aria-hidden /> Crew challenge & titles
+                </Link>
+              </div>
             )}
           </div>
         </div>

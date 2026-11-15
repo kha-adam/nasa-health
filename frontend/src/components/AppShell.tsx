@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, LayoutGrid, LineChart, MessageSquareText, Users, type LucideIcon } from "lucide-react";
+import { Award, FileText, LayoutGrid, LineChart, MessageSquareText, Users, type LucideIcon } from "lucide-react";
 import type { AstronautProfile, SessionUser } from "@/types/blue";
 import { dashboardHref, metricHref } from "@/lib/metrics";
 import TopNavBar, { type MissionClock } from "./TopNavBar";
 
-export type NavKey = "overview" | "crew" | "metrics" | "reports" | "log";
+export type NavKey = "overview" | "crew" | "metrics" | "reports" | "crew-life" | "log";
 
 interface NavItem {
   key: NavKey;
@@ -29,6 +29,8 @@ interface Props {
   fit?: boolean;
   /** Keep the overview header focused on the brand and sign-out action. */
   minimalHeader?: boolean;
+  /** Extra content in the mission bar, after the product name (overview: prestige badges). */
+  headerExtra?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -43,6 +45,7 @@ function navItems(user: SessionUser, profile: AstronautProfile | null | undefine
   if (id) items.push({ key: "metrics", label: "Metrics", icon: LineChart, href: metricHref("heart_rate", id, surgeon) });
   if (!surgeon) {
     items.push({ key: "reports", label: "Reports", icon: FileText, href: "/dashboard/reports" });
+    items.push({ key: "crew-life", label: "Crew life", icon: Award, href: "/dashboard/crew-life" });
     items.push(
       onOpenLog
         ? { key: "log", label: "Log", icon: MessageSquareText, onClick: onOpenLog }
@@ -83,7 +86,7 @@ function NavEntry({ item, active, compact }: { item: NavItem; active: boolean; c
 }
 
 /** Navigation rail + mission bar around every signed-in page. */
-export default function AppShell({ user, profile, mission, active, onLogout, onOpenLog, fit, minimalHeader, children }: Props) {
+export default function AppShell({ user, profile, mission, active, onLogout, onOpenLog, fit, minimalHeader, headerExtra, children }: Props) {
   const items = navItems(user, profile, onOpenLog);
   const clock: MissionClock | null = profile
     ? {
@@ -113,7 +116,7 @@ export default function AppShell({ user, profile, mission, active, onLogout, onO
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <TopNavBar user={user} mission={clock} onLogout={onLogout} minimal={minimalHeader} />
+        <TopNavBar user={user} mission={clock} onLogout={onLogout} minimal={minimalHeader} extra={headerExtra} />
         <nav aria-label="Main" className="thin-scroll -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 md:hidden">
           {items.map((item) => (
             <NavEntry key={item.key} item={item} active={item.key === active} compact />

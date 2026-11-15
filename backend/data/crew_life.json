@@ -1,0 +1,77 @@
+{
+  "_about": "Crew-life demo seed (titles of the week, crew challenge, mission map). Not derived from the ASTRA CSV: it records crew activity inside the app (check-ins, pauses, encouragements, BLUE conversations). Sleep Captain is never seeded: it is computed from the bedtimes in backend/data/telemetry/<id>.json. Mission weeks start on day 4 (days 1-3 were launch and commissioning), so week 21 covers days 144-150. Loaded once at start-up; live changes stay in memory and a restart resets the demo.",
+  "history": [
+    {"week": 1, "challenge_completed": true, "reward": "meal_pizza"},
+    {"week": 2, "challenge_completed": true, "reward": "film_apollo13"},
+    {"week": 3, "challenge_completed": false},
+    {"week": 4, "challenge_completed": true, "reward": "film_hidden_figures"},
+    {"week": 5, "challenge_completed": true, "reward": "meal_feast"},
+    {"week": 6, "challenge_completed": true, "reward": "film_the_martian"},
+    {"week": 7, "challenge_completed": true, "reward": "meal_pizza"},
+    {"week": 8, "challenge_completed": false},
+    {"week": 9, "challenge_completed": true, "reward": "film_apollo13"},
+    {"week": 10, "challenge_completed": true, "reward": "meal_feast"},
+    {"week": 11, "challenge_completed": true, "reward": "film_hidden_figures"},
+    {"week": 12, "challenge_completed": true, "reward": "meal_pizza"},
+    {"week": 13, "challenge_completed": false},
+    {"week": 14, "challenge_completed": true, "reward": "film_the_martian"},
+    {"week": 15, "challenge_completed": true, "reward": "meal_feast"},
+    {"week": 16, "challenge_completed": true, "reward": "film_apollo13"},
+    {
+      "week": 17, "challenge_completed": true, "reward": "meal_pizza",
+      "titles": {"calm_keeper": ["astro-chen"], "checkin_star": ["astro-vance"], "station_voice": ["astro-lin"], "crew_compass": ["astro-lin"]}
+    },
+    {
+      "week": 18, "challenge_completed": true, "reward": "film_hidden_figures",
+      "titles": {"calm_keeper": ["astro-lin"], "checkin_star": ["astro-vance", "astro-chen"], "station_voice": ["astro-chen"], "crew_compass": ["astro-vance"]}
+    },
+    {
+      "week": 19, "challenge_completed": true, "reward": "meal_feast",
+      "titles": {"calm_keeper": ["astro-vance"], "checkin_star": ["astro-lin"], "station_voice": ["astro-chen"], "crew_compass": ["astro-chen"]}
+    },
+    {
+      "week": 20, "challenge_completed": false,
+      "titles": {"calm_keeper": ["astro-chen"], "checkin_star": ["astro-vance"], "station_voice": ["astro-chen"], "crew_compass": ["astro-vance"]}
+    }
+  ],
+  "current_week": {
+    "checkin_days": {
+      "astro-vance": [144, 145, 146, 147, 148, 149],
+      "astro-chen": [144, 145, 147, 148, 149],
+      "astro-lin": [145, 146, 147, 148]
+    },
+    "rituals": [
+      {"astronaut_id": "astro-chen", "day": 144, "kind": "wind_down"},
+      {"astronaut_id": "astro-chen", "day": 145, "kind": "wind_down"},
+      {"astronaut_id": "astro-chen", "day": 145, "kind": "breathing"},
+      {"astronaut_id": "astro-chen", "day": 146, "kind": "wind_down"},
+      {"astronaut_id": "astro-chen", "day": 147, "kind": "wind_down"},
+      {"astronaut_id": "astro-chen", "day": 147, "kind": "music"},
+      {"astronaut_id": "astro-chen", "day": 148, "kind": "wind_down"},
+      {"astronaut_id": "astro-chen", "day": 149, "kind": "wind_down"},
+      {"astronaut_id": "astro-chen", "day": 149, "kind": "gratitude"},
+      {"astronaut_id": "astro-lin", "day": 145, "kind": "stretch"},
+      {"astronaut_id": "astro-lin", "day": 146, "kind": "window"},
+      {"astronaut_id": "astro-lin", "day": 148, "kind": "breathing"},
+      {"astronaut_id": "astro-lin", "day": 149, "kind": "breathing"},
+      {"astronaut_id": "astro-lin", "day": 149, "kind": "stretch"},
+      {"astronaut_id": "astro-lin", "day": 150, "kind": "breathing"},
+      {"astronaut_id": "astro-vance", "day": 144, "kind": "window"},
+      {"astronaut_id": "astro-vance", "day": 146, "kind": "music"},
+      {"astronaut_id": "astro-vance", "day": 148, "kind": "stretch"},
+      {"astronaut_id": "astro-vance", "day": 150, "kind": "window"}
+    ],
+    "encouragements": [
+      {"from_id": "astro-vance", "to_id": "astro-chen", "day": 145, "message": "Proud of how you're handling the night troubleshooting. Shout if you need a hand."},
+      {"from_id": "astro-chen", "to_id": "astro-vance", "day": 146, "message": "Thanks for covering the comms pass for me."},
+      {"from_id": "astro-lin", "to_id": "astro-chen", "day": 147, "message": "Your work on the CO2 scrubber saved our week!"},
+      {"from_id": "astro-vance", "to_id": "astro-lin", "day": 148, "message": "Rest up, Maya. We've got the lab covered today."},
+      {"from_id": "astro-chen", "to_id": "astro-lin", "day": 148, "message": "Here if you want company on the treadmill next time."},
+      {"from_id": "astro-vance", "to_id": "astro-chen", "day": 149, "message": "The earlier lighting looks like it's working. Nice one."},
+      {"from_id": "astro-chen", "to_id": "astro-lin", "day": 149, "message": "Saved you a chocolate pudding."},
+      {"from_id": "astro-lin", "to_id": "astro-vance", "day": 149, "message": "Thanks for checking on me, Commander."},
+      {"from_id": "astro-vance", "to_id": "astro-lin", "day": 150, "message": "Good to see you back on your feet."}
+    ],
+    "blue_messages": {"astro-vance": 9, "astro-chen": 16, "astro-lin": 21}
+  }
+}

@@ -321,6 +321,57 @@ h3 {
   }
 }
 
+/* Mission map: the star a check-in has just added. */
+.star-new {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: star-new 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+@keyframes star-new {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-40deg);
+  }
+}
+
+/* Prestige badges: rarer tiers twinkle (Epic+) and catch a moving reflection (Legendary+). */
+.prestige-twinkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: prestige-twinkle 2.6s ease-in-out infinite;
+}
+@keyframes prestige-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.55) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(45deg);
+  }
+}
+.prestige-sweep {
+  animation: prestige-sweep 3.8s ease-in-out infinite;
+}
+@keyframes prestige-sweep {
+  0%,
+  55% {
+    transform: translateX(-56px);
+  }
+  100% {
+    transform: translateX(64px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prestige-twinkle {
+    animation: none;
+  }
+  .prestige-sweep {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

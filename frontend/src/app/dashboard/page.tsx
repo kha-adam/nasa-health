@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Brain, Download, HeartPulse, Users } from "lucide-react";
-import type { AstronautProfile, BodyZone, MentalHealthReport, MetricDefinition } from "@/types/blue";
+import type { AstronautProfile, BodyZone, MentalHealthReport, MetricDefinition, Patch } from "@/types/blue";
 import { api } from "@/lib/api";
 import { dashboardHref, openLog, type PanelMode } from "@/lib/metrics";
 import { useRequireUser, useTargetAstronaut } from "@/lib/session";
@@ -17,6 +17,7 @@ import EventsPanel from "@/components/EventsPanel";
 import ExportDialog from "@/components/ExportDialog";
 import VoicePsychologistFab from "@/components/VoicePsychologistFab";
 import StatusBadge from "@/components/StatusBadge";
+import PrestigeStrip from "@/components/PrestigeStrip";
 import { ErrorScreen, FullScreenLoader } from "@/components/ScreenStates";
 
 export default function DashboardPage() {
@@ -72,6 +73,17 @@ function Dashboard() {
   const [panel, setPanel] = useState<PanelMode>("physical");
   const [selected, setSelected] = useState<BodyZone | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [patches, setPatches] = useState<Patch[]>([]);
+
+  // Prestige badges in the mission bar: crew life is private to the astronauts.
+  const loadPatches = useCallback(() => {
+    if (user?.role !== "astronaut") return;
+    api
+      .crewLife()
+      .then((b) => setPatches(b.patches))
+      .catch(() => {});
+  }, [user]);
+  useEffect(loadPatches, [loadPatches]);
 
   const load = useCallback(() => {
     if (!astronautId) return;
@@ -109,7 +121,8 @@ function Dashboard() {
 
   const handleReportGenerated = useCallback((report: MentalHealthReport) => {
     setProfile((p) => (p ? { ...p, mental_reports: [report, ...p.mental_reports.filter((r) => r.id !== report.id)] } : p));
-  }, []);
+    loadPatches(); // a check-in can complete the crew challenge and raise its prestige
+  }, [loadPatches]);
 
   const failure = sessionError ?? error;
   if (failure) return <ErrorScreen message={failure} onRetry={sessionError ? retry : load} />;
@@ -123,6 +136,7 @@ function Dashboard() {
       onLogout={logout}
       onOpenLog={asSurgeon ? undefined : openLog}
       minimalHeader
+      headerExtra={asSurgeon ? undefined : <PrestigeStrip patches={patches} />}
     >
       {/* Who is followed and which view */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-1 pb-3 pt-0.5 md:px-2">
