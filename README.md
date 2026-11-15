@@ -144,6 +144,17 @@ Spoken and typed messages use the same live agent, with the selected astronaut�
 The agent answers direct questions before continuing the voluntary survey. **End Session & Generate Earth Report** still files
 the conversation through the existing backend. If live voice is unavailable, the text check-in and backup speech input remain available.
 
+Each live session receives the astronaut's dashboard snapshot: all current readings and metric definitions/alert bands,
+24-hour/7-day/30-day/whole-mission chart statistics, events, reports and Earth directives, plus the current Crew life board
+(weekly titles, holders, perks, own challenge progress, anonymous crew progress, rewards and mission stars).
+Dashboard questions do not count as check-in answers. BLUE answers first, then continues the unanswered check-in topics.
+Offline replies can explain recorded metrics and weekly titles/challenges; open-ended medical education requires the live agent.
+Context refreshes when BLUE opens a new live session; changes made while a session is open require reopening BLUE.
+BLUE explains general medical topics without diagnosing, prescribing or treating demo alert bands as clinical reference ranges.
+Medical guidance follows the limits described by [MedlinePlus](https://medlineplus.gov/encyclopedia.html), including
+[urgent symptom guidance](https://medlineplus.gov/ency/article/001927.htm) adapted to the onboard medical officer and mission protocol.
+The agent cannot change votes/perks, validate rituals, send messages to crew or Earth, or file reports by voice alone.
+
 Wake recognition uses the browser when available, with backup transcription if its speech service fails.
 Say “Hey Bleu” or “Hey Blue”, or use the dot by mouse/keyboard. The activation phrase is discarded.
 

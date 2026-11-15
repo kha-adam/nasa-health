@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 
 from core.metrics import BY_KEY
+from core.blue_context import dashboard_answer
 from schemas import AstronautProfile, ChatMessage, SessionMode
 
 # --------------------------------------------------------------------------
@@ -223,13 +224,16 @@ def scripted_reply(profile: AstronautProfile, messages: list[ChatMessage]) -> tu
         return script[0], mode, False
 
     last = user_turns[-1].content
-    direct = conversational_answer(last)
+    direct = dashboard_answer(profile, last) or conversational_answer(last)
     if direct:
         return direct, mode, False
     ack, themed = _acknowledge(profile, last, messages[:-1])
 
     wants_out = any(re.search(p, last.lower()) for p in WRAP_PATTERNS)
-    answered = sum(conversational_answer(message.content) is None for message in user_turns)
+    answered = sum(
+        conversational_answer(message.content) is None and dashboard_answer(profile, message.content) is None
+        for message in user_turns
+    )
     if wants_out or answered >= len(script):
         wrap = WRAP_UP[mode].format(first=first)
         # The wrap-up already thanks the astronaut; only keep a meaningful ack.

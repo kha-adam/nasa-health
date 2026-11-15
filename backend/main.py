@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 
-from core import auth, crew_life, metrics, profiles, psychologist, report_generator, speech, telemetry
+from core import auth, blue_context, crew_life, metrics, profiles, psychologist, report_generator, speech, telemetry
 from schemas import (
     AstronautProfile,
     BlueActivityRequest,
@@ -258,9 +258,7 @@ async def voice_session(req: ChatRequest, user: User) -> JSONResponse:
     profile = _require_private(user, req.astronaut_id)
     if req.session_id:
         crew_life.record_blue_messages(profile.id, req.session_id, _user_messages(req))
-    context = profile.model_dump()
-    # Keep only recent reports in the voice prompt; the frozen profile remains untouched.
-    context["mental_reports"] = context["mental_reports"][:3]
+    context = blue_context.dashboard_context(profile)
     token = await speech.create_voice_session(context, [message.model_dump() for message in req.messages], not req.messages)
     if token is None:
         raise HTTPException(status_code=503, detail="Live voice is unavailable. You can keep using text chat.")

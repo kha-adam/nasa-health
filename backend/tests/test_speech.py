@@ -59,6 +59,9 @@ def test_live_session_preserves_crew_context_and_history(monkeypatch):
     assert seen["profile"]["current_vitals"]["blood_sugar_mg_dl"] == profiles.get_profile("astro-chen").current_vitals.blood_sugar_mg_dl
     assert seen["messages"][0]["content"] == "How are you?"
     assert seen["greeting"] is False
+    assert seen["profile"]["crew_life"]["astronaut_id"] == "astro-chen"
+    assert "spo2" in seen["profile"]["metric_history"]
+    assert seen["profile"]["metric_catalog"]
     prompt = speech.voice_prompt(seen["profile"], seen["messages"])
     assert "Always respond to what the person actually says" in prompt
     assert "astro-chen" in prompt
